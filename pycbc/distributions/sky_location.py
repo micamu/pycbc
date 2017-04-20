@@ -95,7 +95,7 @@ class SkyFromArrivalTimes(object):
         return all([params in dist for dist in self.t_distributions.values() +
                         [self.tc_distribution, self.sky_distribution]])
 
-    def _logpdf(self, **kwargs):
+    def logpdf(self, **kwargs):
         try:
             ra = kwargs['ra']
             dec = kwargs['dec']
@@ -115,7 +115,7 @@ class SkyFromArrivalTimes(object):
             lp += distr.logpdf(**kwargs)
         return lp
 
-    def _pdf(self, **kwargs):
+    def pdf(self, **kwargs):
         return numpy.exp(self.logpdf(**kwargs))
             
     def __call__(self, **kwargs):

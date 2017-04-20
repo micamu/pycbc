@@ -179,7 +179,7 @@ def bounded_from_config(cls, cp, section, variable_args,
         if key in special_args:
             continue
         # check if option can be cast as a float
-        val = cp.get_opt_tag("prior", key, tag)
+        val = cp.get_opt_tag(section, key, tag)
         try:
             val = float(val)
         except ValueError:

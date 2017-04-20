@@ -17,9 +17,10 @@ right acension and declination.
 """
 
 
+import pycbc.distributions
 from pycbc.distributions import angular
 from pycbc import detector
-from pycbc.distributions import VARARGS_DELIM, distribs
+from pycbc.distributions.bounded import VARARGS_DELIM
 
 class UniformSky(angular.UniformSolidAngle):
     """A distribution that is uniform on the sky. This is the same as
@@ -187,7 +188,8 @@ class SkyFromArrivalTimes(object):
             varname = secname[-1]
             secname = '-'.join(secname[:-1])
             distname = cp.get_opt_tag(secname, 'name', varname)
-            tc_distributions[detname] = distribs[distname].from_config(cp,
+            tc_distributions[detname] = \
+                pycbc.distributions.distribs[distname].from_config(cp,
                 secname, varname)
         return cls(tc_distributions, tc_ref_frame)
 

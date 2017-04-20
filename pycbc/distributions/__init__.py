@@ -36,6 +36,7 @@ distribs = {
     SinAngle.name : SinAngle,
     UniformSolidAngle.name : UniformSolidAngle,
     UniformSky.name : UniformSky,
+    SkyFromArrivalTimes.name : SkyFromArrivalTimes,
 }
 
 def read_distributions_from_config(cp, section="prior"):

@@ -516,7 +516,9 @@ class FDomainDetFrameGenerator(object):
      'L1': <pycbc.types.frequencyseries.FrequencySeries at 0x116637a50>}
 
     """
-    location_args = set(['tc', 'ra', 'dec', 'polarization'])
+    location_args = set(['tc', 'ra', 'dec', 'polarization', 'tc_ref_frame',
+                         'tc_offset'])
+    optional_args = {'tc_ref_frame': 'geocentric', 'tc_offset': 0.}
 
     def __init__(self, rFrameGeneratorClass, epoch, detectors=None,
             window=None, variable_args=(), **frozen_params):
@@ -543,8 +545,10 @@ class FDomainDetFrameGenerator(object):
             # FIXME: use the following when we switch to 2.7
             #self.detectors = {det: Detector(det) for det in detectors}
             self.detectors = dict([(det, Detector(det)) for det in detectors])
-            missing_args = [arg for arg in self.location_args if not
-                (arg in self.current_params or arg in self.variable_args)]
+            missing_args = [arg
+                for arg in self.location_args-set(self.optional_args.keys())
+                if not (arg in self.current_params or
+                        arg in self.variable_args)]
             if any(missing_args):
                 raise ValueError("detectors provided, but missing location "
                     "parameters %s. " %(', '.join(missing_args)) +
@@ -558,6 +562,10 @@ class FDomainDetFrameGenerator(object):
             self.returns_whitened = window.window_whitened
         else:
             self.returns_whitened = False
+        # add the optional args if they were not requested
+        for arg,val in self.optional_args.items():
+            if arg not in self.current_params:
+                self.current_params[arg] = val
 
     def set_epoch(self, epoch):
         """Sets the epoch; epoch should be a float or a LIGOTimeGPS."""
@@ -600,6 +608,17 @@ class FDomainDetFrameGenerator(object):
             break_time = 1./(4*hp.delta_f)
         h = {}
         if self.detector_names != ['RF']:
+            ra = self.current_params['ra']
+            dec = self.current_params['dec']
+            pol = self.current_params['polarization']
+            tc = self.current_params['tc'] + self.current_params['tc_offset']
+            tc_ref_frame = self.current_params['tc_ref_frame']
+            if tc_ref_frame != 'geocentric':
+                try:
+                    ref_det = self.detectors[tc_ref_frame]
+                except KeyError:
+                    raise ValueError("unrecognized tc_ref_frame {}".format(
+                        tc_ref_frame))
             for detname, det in self.detectors.items():
                 # apply detector response function
                 fp, fc = det.antenna_pattern(self.current_params['ra'],
@@ -614,10 +633,15 @@ class FDomainDetFrameGenerator(object):
                                         params=self.current_params, copy=False)
                 # apply the time shift
                 thish._epoch = self._epoch
-                tc = self.current_params['tc'] + \
-                    det.time_delay_from_earth_center(self.current_params['ra'],
-                         self.current_params['dec'], self.current_params['tc'])
-                h[detname] = apply_fd_time_shift(thish, tc+tshift, copy=False)
+                if tc_ref_frame == detname:
+                    det_tc = tc
+                elif tc_ref_frame == 'geocentric':
+                    det_tc = tc + det.time_delay_from_earth_center(ra, dec, tc)
+                else:
+                    det_tc = tc + det.time_delay_from_detector(ref_det,
+                        ra, dec, tc)
+                h[detname] = apply_fd_time_shift(thish, det_tc+tshift,
+                    copy=False)
         else:
             # no detector response, just use the + polarization
             # apply window
@@ -625,9 +649,10 @@ class FDomainDetFrameGenerator(object):
                 hp = self.window(hp, break_time=break_time,
                                  params=self.current_params, copy=False)
             if 'tc' in self.current_params:
+                tc = self.current_params['tc'] + \
+                     self.current_params['tc_offset'] + tshift
                 hp._epoch = self._epoch
-                hp = apply_fd_time_shift(hp, self.current_params['tc']+tshift,
-                                         copy=False)
+                hp = apply_fd_time_shift(hp, td, copy=False)
             h['RF'] = hp
         return h
 

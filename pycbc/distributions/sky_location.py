@@ -16,7 +16,7 @@
 right acension and declination.
 """
 
-
+import numpy
 import pycbc.distributions
 from pycbc.distributions import angular
 from pycbc import detector

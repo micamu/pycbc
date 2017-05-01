@@ -189,17 +189,23 @@ with ctx:
     # get distribution to draw from for each walker initial position
     logging.info("Setting walkers initial conditions for varying parameters")
 
+    # set the initial positions
+    prior_dists = distributions.read_distributions_from_config(
+                                                         cp, section="prior")
     # check if user wants to use different distributions than prior for setting
     # walkers initial positions
     if len(cp.get_subsections("initial")):
         initial_dists = distributions.read_distributions_from_config(
                                                          cp, section="initial")
+        sampler.set_p0(prior_dists, initial_dists)
     else:
-        initial_dists = distributions.read_distributions_from_config(
+        sampler.set_p0(prior_dists)
+
+    prior_dists = distributions.read_distributions_from_config(
                                                          cp, section="prior")
 
     # set the initial positions
-    sampler.set_p0(initial_dists)
+    sampler.set_p0(prior_dists, initial_dists)
 
     # setup checkpointing
     if opts.checkpoint_interval:

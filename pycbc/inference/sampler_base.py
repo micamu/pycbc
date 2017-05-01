@@ -223,7 +223,7 @@ class BaseMCMCSampler(_BaseSampler):
     def pos(self):
         return self._pos
 
-    def set_p0(self, prior_distributions):
+    def set_p0(self, prior_distributions, initial_distributions=None):
         """Sets the initial position of the walkers.
 
         Parameters
@@ -231,6 +231,11 @@ class BaseMCMCSampler(_BaseSampler):
         prior_distributions : list
             A list of priors to retrieve random values from (the sort of
             thing returned by `prior.read_distributions_from_config`).
+        initial_distributions: {None, list}
+            A list of priors to retrieve random values from, when different 
+            distributions than prior want to be used for setting walkers 
+            initial positions. If provided, prior_distributions will only be
+            used for parameters not present in initial_distributions.
 
         Returns
         -------
@@ -244,10 +249,20 @@ class BaseMCMCSampler(_BaseSampler):
         ndim = len(self.variable_args)
         pmap = dict([[param, k] for k, param in enumerate(self.variable_args)])
         p0 = numpy.ones((nwalkers, ndim))
+        initial_params = []
+        if initial_distributions is not None:
+            for dist in initial_distributions:
+                ps = dist.rvs(size=nwalkers)
+                for param in dist.params:
+                    initial_params.append(param)
+                    p0[:, pmap[param]] = ps[param]
         for dist in prior_distributions:
-            ps = dist.rvs(size=nwalkers)
             for param in dist.params:
-                p0[:, pmap[param]] = ps[param]
+                # check that the parameter has not already been set in
+                # the initial_distributions
+                if param not in initial_params:
+                    ps = dist.rvs(size=nwalkers)
+                    p0[:, pmap[param]] = ps[param]
         self._p0 = p0
         return p0
 

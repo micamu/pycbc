@@ -201,12 +201,6 @@ with ctx:
     else:
         sampler.set_p0(prior_dists)
 
-    prior_dists = distributions.read_distributions_from_config(
-                                                         cp, section="prior")
-
-    # set the initial positions
-    sampler.set_p0(prior_dists, initial_dists)
-
     # setup checkpointing
     if opts.checkpoint_interval:
 

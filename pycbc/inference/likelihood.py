@@ -486,24 +486,24 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
         self._kmax = kmax
         if norm is None:
             norm = 4*d.delta_f
+        self._norm = norm
         # we'll store the weight to apply to the inner product
         if psds is None:
-            w = Array(numpy.sqrt(norm)*numpy.ones(N))
-            self._weight = {det: w for det in data} 
+            self._weight = None
         else:
             # temporarily suppress numpy divide by 0 warning
             numpysettings = numpy.seterr(divide='ignore')
             self._weight = {det: Array(numpy.sqrt(norm/psds[det]))
                             for det in data}
             numpy.seterr(**numpysettings)
-        # whiten the data
-        for det in self._data:
-            self._data[det][kmin:kmax] *= self._weight[det][kmin:kmax]
+            # whiten the data
+            for det in self._data:
+                self._data[det][kmin:kmax] *= self._weight[det][kmin:kmax]
         # compute the log likelihood function of the noise and save it
-        self.set_lognl(-0.5*sum([
-            d[kmin:kmax].inner(d[kmin:kmax]).real
-            for d in self._data.values()]))
-        # if the waveform generator returns (over-)whitened waveforms, adjust
+        lognl = -0.5*sum([self._norm * d[kmin:kmax].inner(d[kmin:kmax]).real
+                          for d in self._data.values()])
+        self.set_lognl(lognl)
+        # if the waveform generator returns whitened waveforms, adjust
         # the weight
         # first check that the psds used are the same
         if waveform_generator.returns_whitened:
@@ -522,17 +522,11 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
                                      "window to whiten is not the same as "
                                      "given {} psd".format(det, det))
         if waveform_generator.returns_whitened == WHITENED:
-            # remove the whitening from the weight
-            for det in self._weight:
-                asd = numpy.sqrt(psds[det])
-                self._weight[det] *= asd
+            # unset the weight
+            self._weight = None
         elif waveform_generator.returns_whitened == OVERWHITENED:
-            # in this case, we want the weight to be the asd, since multiplying
-            # the overwhitened waveform by the asd will result in it being
-            # white. Since the weight currently is divided by the asd, this
-            # means multiplying the weight by the psd
-            for det in self._weight:
-                self._weight[det] *= psds[det]
+            # we can't filter an overwhitened waveform
+            raise ValueError("cannot filter overwhitened waveforms")
         # set default call function to logplr
         self.set_callfunc('logplr')
 
@@ -565,21 +559,23 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
         except NoWaveformError:
             # if no waveform was generated, just return 0
             return lr
-        for det,h in wfs.items():
+        for det,d in self._data.items():
+            h = wfs[det]
             # the kmax of the waveforms may be different than internal kmax
             kmax = min(len(h), self._kmax)
-            # whiten the waveform
             if self._kmin >= kmax:
                 # if the waveform terminates before the filtering low frequency
                 # cutoff, there is nothing to filter, so just go onto the next
                 continue
-            h[self._kmin:kmax] *= self._weight[det][self._kmin:kmax]
-            lr += (
-                # <h, d>
-                self.data[det][self._kmin:kmax].inner(h[self._kmin:kmax]).real
-                # - <h, h>/2.
-                - 0.5*h[self._kmin:kmax].inner(h[self._kmin:kmax]).real
-                )
+            # whiten the waveform
+            if self._weight is not None:
+                h[self._kmin:kmax] *= self._weight[det][self._kmin:kmax]
+            # <h, d>
+            hd = self._norm * h[self._kmin:kmax].inner(d[self._kmin:kmax]).real
+            # <h, h>
+            hh = self._norm * h[self._kmin:kmax].inner(h[self._kmin:kmax]).real
+            # likelihood ratio
+            lr += hd - 0.5*hh
         return lr
 
     def loglikelihood(self, params):

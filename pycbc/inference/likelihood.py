@@ -493,7 +493,7 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
         else:
             # temporarily suppress numpy divide by 0 warning
             numpysettings = numpy.seterr(divide='ignore')
-            self._weight = {det: Array(numpy.sqrt(norm/psds[det]))
+            self._weight = {det: Array(numpy.sqrt(1./psds[det]))
                             for det in data}
             numpy.seterr(**numpysettings)
             # whiten the data

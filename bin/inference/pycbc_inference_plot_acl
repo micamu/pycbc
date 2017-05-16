@@ -72,10 +72,15 @@ for param_name in parameters:
             acl = fp.niterations
         acls.append( acl )
 
+logging.info("Maximum acl: {}".format(max(acls)))
+
 # plot autocorrelation length
 logging.info("Plotting autocorrelation lengths")
 fig = plt.figure()
-range_max = max(fp.acl, max(acls))
+try:
+    range_max = max(fp.acl, max(acls))
+except KeyError:
+    range_max = max(acls)
 y,x,patches = plt.hist(acls, opts.bins, range=(0,range_max),
                                         histtype="step")
 
@@ -90,7 +95,10 @@ x_min = max(0, x.min()-2*step)
 plt.xlim(x_min, x.max()+2*step)
 
 # plot autocorrelation length saved in InferenceFile
-plt.vlines(fp.acl, 0, int(1.1*y.max()))
+try:
+    plt.vlines(fp.acl, 0, int(1.1*y.max()))
+except KeyError:
+    pass
 
 # save figure with meta-data
 caption_kwargs = {

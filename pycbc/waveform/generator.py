@@ -611,7 +611,8 @@ class FDomainDetFrameGenerator(object):
             ra = self.current_params['ra']
             dec = self.current_params['dec']
             pol = self.current_params['polarization']
-            tc = self.current_params['tc'] + self.current_params['tc_offset']
+            tc_offset = self.current_params['tc_offset']
+            tc = self.current_params['tc'] + tc_offset
             tc_ref_frame = self.current_params['tc_ref_frame']
             if tc_ref_frame != 'geocentric':
                 try:
@@ -628,9 +629,21 @@ class FDomainDetFrameGenerator(object):
                 thish = fp*hp + fc*hc
                 # apply window
                 if self.window is not None:
+                    # pin the window to the tc, excluding the tc offset
+                    left_taper_time = self.window.left_taper_time
+                    if left_taper_time is not None:
+                        self.window.left_taper_time = left_taper_time - \
+                            tc_offset
+                    right_taper_time = self.window.right_taper_time
+                    if right_taper_time is not None:
+                        self.window.right_taper_time = right_taper_time - \
+                            tc_offset
                     thish = self.window(thish, break_time=break_time,
                                         ifo=detname,
                                         params=self.current_params, copy=False)
+                    # reset the taper time
+                    self.window.left_taper_time = left_taper_time
+                    self.window.right_taper_time = right_taper_time
                 # apply the time shift
                 thish._epoch = self._epoch
                 if tc_ref_frame == detname:

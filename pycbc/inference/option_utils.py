@@ -22,6 +22,7 @@ import numpy
 from argparse import ArgumentParser
 from pycbc import psd, strain, gate
 from pycbc import DYN_RANGE_FAC
+from pycbc import transforms
 from pycbc.io import InferenceFile
 from pycbc.workflow import WorkflowConfigParser
 import pycbc.inference.sampler

@@ -631,7 +631,7 @@ class FDomainDetFrameGenerator(object):
                 if self.window is not None:
                     # pin the window to the tc, excluding the tc offset
                     left_taper_time = self.window.left_taper_time
-                    if left_taper_time is not None:
+                    if left_taper_time is not None and left_taper_time != 'start':
                         self.window.left_taper_time = left_taper_time - \
                             tc_offset
                     right_taper_time = self.window.right_taper_time

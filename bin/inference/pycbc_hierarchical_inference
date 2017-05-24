@@ -259,7 +259,7 @@ for ename in event_names:
 
     # parse any window
     waveform_window = option_utils.waveform_window_from_config(cp,
-                                section='inspiral_window', psds=psd_dict)
+                                section=ename + '_window', psds=psd_dict)
 
     # construct class that will generate waveforms
     generator = wfgen.FDomainDetFrameGenerator(generator_function,

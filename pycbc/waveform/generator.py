@@ -648,6 +648,7 @@ class FDomainDetFrameGenerator(object):
                         # reset the taper time
                         self.window.left_taper_time = left_taper_time
                         self.window.right_taper_time = right_taper_time
+                        raise NoWaveformError(e)
                     # reset the taper time
                     self.window.left_taper_time = left_taper_time
                     self.window.right_taper_time = right_taper_time

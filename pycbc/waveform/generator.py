@@ -32,6 +32,7 @@ from pycbc import coordinates
 from pycbc import filter
 from pycbc.types import TimeSeries
 from pycbc.waveform import parameters
+from pycbc.waveform import NoWaveformError
 from pycbc.waveform.utils import apply_fd_time_shift
 from pycbc.window import laltaper_timeseries as taper_timeseries
 from pycbc.detector import Detector
@@ -638,9 +639,15 @@ class FDomainDetFrameGenerator(object):
                     if right_taper_time is not None:
                         self.window.right_taper_time = right_taper_time - \
                             tc_offset
-                    thish = self.window(thish, break_time=break_time,
-                                        ifo=detname,
-                                        params=self.current_params, copy=False)
+                    try:
+                        thish = self.window(thish, break_time=break_time,
+                                            ifo=detname,
+                                            params=self.current_params,
+                                            copy=False)
+                    except NoWaveformError as e:
+                        # reset the taper time
+                        self.window.left_taper_time = left_taper_time
+                        self.window.right_taper_time = right_taper_time
                     # reset the taper time
                     self.window.left_taper_time = left_taper_time
                     self.window.right_taper_time = right_taper_time

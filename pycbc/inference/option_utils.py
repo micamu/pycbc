@@ -79,6 +79,19 @@ def config_parser_from_cli(opts):
     return WorkflowConfigParser(opts.config_files, overrides)
 
 
+def inference_opts_from_config(cp, section, additional_opts=None):
+    """Constructs an ArgumentParser.parse_args opts instance needed to
+    construct a likelihood evaluator from a config file, as if the config file
+    options were specified on the command line in for `pycbc_inference`.
+    """
+    optstr = config_section_to_opts(cp, section)
+    if additional_opts is not None:
+        optstr = '{} {}'.format(opts, ' '.join(additional_opts))
+    # create the dummy parser
+    parser = _option_utils.add_likelihood_opts_to_parser(ArgumentParser())
+    return parser.parse_args(optstr.split(' '))
+
+
 def read_args_from_config(cp, section_group=None):
     """Given an open config file, loads the static and variable arguments to
     use in the parameter estmation run.
@@ -680,3 +693,50 @@ def add_density_option_group(parser):
                          "is to use scipy's gaussian_kde.")
 
     return density_group
+
+def write_data_to_output(fp, strain_dict=None, stilde_dict=None,
+                         psd_dict=None, low_frequency_cutoff_dict=None,
+                         group=None):
+    """Writes the strain/stilde/psd to the given output file.
+
+    Parameters
+    ----------
+    fp : InferenceFile
+        An open `InferenceFile` handle to save the data to.
+    strain_dict : {None, dict}
+        A dictionary of strains. If None, no strain will be written.
+    stilde_dict : {None, dict}
+        A dictionary of stilde. If None, no stilde will be written.
+    psd_dict : {None, dict}
+        A dictionary of psds. If None, psds will be written.
+    low_freuency_cutoff_dict : {None, dict}
+        A dictionary of low frequency cutoffs used for each detector in
+        `psd_dict`; must be provided if `psd_dict` is not None.
+    group : {None, str}
+        The group to write the strain to. If None, will write to the top
+        level.
+    """
+    # save PSD
+    if psd_dict is not None:
+        if low_frequency_cutoff_dict is None:
+            raise ValueError("must provide low_frequency_cutoff_dict if "
+                             "saving psds to output")
+        # apply dynamic range factor for saving PSDs since
+        # plotting code expects it
+        logging.info("Saving PSDs")
+        psd_dyn_dict = {}
+        for key,val in psd_dict.iteritems():
+             psd_dyn_dict[key] = FrequencySeries(
+                                        psd_dict[key] * DYN_RANGE_FAC**2,
+                                        delta_f=psd_dict[key].delta_f)
+        fp.write_psd(psds=psd_dyn_dict,
+                     low_frequency_cutoff=low_frequency_cutoff_dict,
+                     group=group)
+
+    # save stilde
+    if stilde_dict is not None:
+        fp.write_stilde(stilde_dict, group=group)
+
+    # save strain if desired
+    if strain_dict is not None:
+        fp.write_strain(strain_dict, group=group)

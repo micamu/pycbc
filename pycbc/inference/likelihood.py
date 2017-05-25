@@ -215,6 +215,21 @@ class _BaseLikelihoodEvaluator(object):
         self.return_meta = return_meta
 
     @property
+    def prior_distribution(self):
+        return self._prior
+
+    @property
+    def static_args(self):
+        """Returns the static args used by the waveform generator.
+        """
+        return self.waveform_generator.static_args
+
+    @property
+    def variable_args(self):
+        """Returns the variable args used by the waveform generator.
+        """
+        return self.waveform_generator.variable_args
+    @property
     def waveform_generator(self):
         """Returns the waveform generator that was set."""
         return self._waveform_generator
@@ -695,7 +710,7 @@ class HierarchicalLikelihood(_BaseLikelihoodEvaluator):
         elif prior.variable_args != self._variable_args:
             raise ValueError("variable args of prior do not match "
                              "all_variable_args")
-        self._prior_distribution = prior
+        self._prior = prior
         # the lognl are the sums of the individual evenets lognls
         self._lognl = sum([le.lognl
                            for le in self._likelihood_evaluators.values()])
@@ -774,4 +789,4 @@ class HierarchicalLikelihood(_BaseLikelihoodEvaluator):
 likelihood_evaluators = {GaussianLikelihood.name: GaussianLikelihood}
 
 __all__ = ['_BaseLikelihoodEvaluator', 'GaussianLikelihood',
-           'likelihood_evaluators']
+           'HierarchicalLikelihood', 'likelihood_evaluators']

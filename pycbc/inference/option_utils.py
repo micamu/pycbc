@@ -19,6 +19,9 @@
 
 import logging
 import numpy
+from argparse import ArgumentParser
+from pycbc import psd, strain, gate
+from pycbc import DYN_RANGE_FAC
 from pycbc.io import InferenceFile
 from pycbc.workflow import WorkflowConfigParser
 import pycbc.inference.sampler
@@ -29,6 +32,7 @@ from pycbc.strain import from_cli_multi_ifos as strain_from_cli_multi_ifos
 from pycbc.gate import gates_from_cli, psd_gates_from_cli, apply_gates_to_td, \
                        apply_gates_to_fd
 from pycbc.waveform import WaveformTDWindow
+from pycbc.types import FrequencySeries
 
 
 #-----------------------------------------------------------------------------
@@ -79,6 +83,53 @@ def config_parser_from_cli(opts):
     return WorkflowConfigParser(opts.config_files, overrides)
 
 
+def config_section_to_opts(cp, section):
+    """Given a section in a config file, converts the specified options into
+    strings as if they were on the command line. For example:
+    
+    .. code::
+        [section_name]
+        foo =
+        bar = 10
+    yields: `'--foo --bar 10'`.
+    """
+    opts = []
+    for opt in cp.options(section):
+        opts.append('--{}'.format(opt))
+        val = cp.get(section, opt)
+        if val != '':
+            opts.append(val)
+    return ' '.join(opts)
+
+
+def add_likelihood_opts_to_parser(parser):
+    """Adds all of the options needed to setup a likelihood evaluator
+    to the given argument parser.
+    """
+    # add data options
+    parser.add_argument("--instruments", type=str, nargs="+", required=True,
+                        help="IFOs, eg. H1 L1.")
+    parser.add_argument("--low-frequency-cutoff", type=float, required=True,
+                        help="Low frequency cutoff for each IFO.")
+    parser.add_argument("--psd-start-time", type=float, default=None,
+                        help="Start time to use for PSD estimation if "
+                             "different from analysis.")
+    parser.add_argument("--psd-end-time", type=float, default=None,
+                        help="End time to use for PSD estimation if different "
+                             "from analysis.")
+    # add inference options
+    parser.add_argument("--likelihood-evaluator", required=True,
+                        choices=pycbc.inference.likelihood.
+                                likelihood_evaluators.keys(),
+                        help="Evaluator class to use to calculate the "
+                             "likelihood.")
+    psd.insert_psd_option_group_multi_ifo(parser)
+    strain.insert_strain_option_group_multi_ifo(parser)
+    gate.add_gate_option_group(parser)
+
+    return parser
+
+
 def inference_opts_from_config(cp, section, additional_opts=None):
     """Constructs an ArgumentParser.parse_args opts instance needed to
     construct a likelihood evaluator from a config file, as if the config file
@@ -88,7 +139,7 @@ def inference_opts_from_config(cp, section, additional_opts=None):
     if additional_opts is not None:
         optstr = '{} {}'.format(opts, ' '.join(additional_opts))
     # create the dummy parser
-    parser = _option_utils.add_likelihood_opts_to_parser(ArgumentParser())
+    parser = add_likelihood_opts_to_parser(ArgumentParser())
     return parser.parse_args(optstr.split(' '))
 
 

@@ -53,8 +53,8 @@ def get_event_priors(cp, ename, section='prior'):
     prior_subsections = cp.get_subsections(prior_section)
     for subsection in prior_subsections:
         section = '{}-{}'.format(prior_section, subsection)
-        params = subsection.split(inference.VARARGS_DELIM)
-        newparams = inference.VARARGS_DELIM.join(['{}_{}'.format(ename, p)
+        params = subsection.split(dists.bounded.VARARGS_DELIM)
+        newparams = dists.bounded.VARARGS_DELIM.join(['{}_{}'.format(ename, p)
                                                   for p in params])
         # copy the section to a new one
         new_section = '{}-{}'.format(prior_section, newparams) 
@@ -225,8 +225,7 @@ for ename in event_names:
 
 # initialize the prior evaluator with the distributions from all of the
 # paramters
-priors = inference.PriorEvaluator(variable_args, distributions,
-                                  static_args=static_args)
+priors = inference.PriorEvaluator(variable_args, *distributions)
 
 # Setup likelihood evaluators for each event
 logging.info("Setting up likelihood evaluator for each event")
@@ -237,7 +236,7 @@ for ename in event_names:
     # load the data for this event
     eopts = option_utils.inference_opts_from_config(
         cp, '{}_data'.format(ename), additional_opts=None)
-    strain_dict, stilde_dict, psd_dict = inference.data_from_cli(eopts)
+    strain_dict, stilde_dict, psd_dict = option_utils.data_from_cli(eopts)
 
     # write data if desired
     with InferenceFile(opts.output_file, "a") as fp:

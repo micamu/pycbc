@@ -69,7 +69,7 @@ class _BaseSampler(object):
     def variable_args(self):
         """Returns the variable args used by the likelihood evaluator.
         """
-        return self.likelihood_evaluator.waveform_generator.variable_args
+        return self.likelihood_evaluator.variable_args
 
     @property
     def chain(self):

@@ -166,7 +166,7 @@ ctx = scheme.from_cli(opts)
 fft.from_cli(opts)
 
 # load the configuration file(s)
-cp = inference.config_parser_from_cli(opts)
+cp = option_utils.config_parser_from_cli(opts)
 
 # get the names of the events
 event_names = cp.options('events')
@@ -178,7 +178,7 @@ logging.info("Loading parameters and setting up priors")
 
 # common
 logging.info("common...")
-variable_args, static_args = inference.read_args_from_config(
+variable_args, static_args = option_utils.read_args_from_config(
     cp, section_group='common')
 common_vargs = copy.copy(variable_args)
 common_sargs = copy.copy(static_args)
@@ -195,7 +195,7 @@ event_vargs = {}
 event_sargs = {}
 for ename in event_names:
     logging.info("{}...".format(ename))
-    these_vargs, these_sargs = inference.read_args_from_config(
+    these_vargs, these_sargs = option_utils.read_args_from_config(
         cp, section_group=ename)
 
     event_vargs[ename] = these_vargs

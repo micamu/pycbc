@@ -31,6 +31,7 @@ import copy
 import numpy
 import lal
 from pycbc.detector import Detector
+import lalsimulation as lalsim
 
 #
 # =============================================================================
@@ -529,6 +530,27 @@ def spin2y_from_mass1_mass2_xi2_phi_a_phi_s(mass1, mass2, xi2, phi_a, phi_s):
     phi2 = phi2_from_phi_a_phi_s(phi_a, phi_s)
     return chi_perp * numpy.sin(phi2)
 
+
+def get_lm_f0tau(mass, spin, l, m, nmodes):
+    """Return the f_0 and the tau of each overtone for a given lm mode 
+    """
+    qnmfreq = lal.CreateCOMPLEX16Vector(nmodes)
+    lalsim.SimIMREOBGenerateQNMFreqV2fromFinal(qnmfreq, float(mass), float(spin), l, m, nmodes)
+
+    f_0 = [qnmfreq.data[n].real / (2 * numpy.pi) for n in range(nmodes)]
+    tau = [1. / qnmfreq.data[n].imag for n in range(nmodes)]
+
+    return f_0, tau
+
+def _f0_from_final_mass_spin(final_mass, final_spin, l=2, m=2):
+    return get_lm_f0tau(final_mass, final_spin, l, m, 1)[0][0]
+
+def _tau_from_final_mass_spin(final_mass, final_spin, l=2, m=2):
+    return get_lm_f0tau(final_mass, final_spin, l, m, 1)[1][0]
+
+f0_from_final_mass_spin = numpy.vectorize(_f0_from_final_mass_spin)
+tau_from_final_mass_spin = numpy.vectorize(_tau_from_final_mass_spin)
+
 #
 # =============================================================================
 #
@@ -601,5 +623,6 @@ __all__ = ['primary_mass', 'secondary_mass', 'mtotal_from_mass1_mass2',
            'spin1x_from_xi1_phi_a_phi_s', 'spin1y_from_xi1_phi_a_phi_s',
            'spin2x_from_mass1_mass2_xi2_phi_a_phi_s',
            'spin2y_from_mass1_mass2_xi2_phi_a_phi_s',
-           'chirp_distance', 'det_tc'
+           'chirp_distance', 'det_tc', 'f0_from_final_mass_spin',
+           'tau_from_final_mass_spin',
           ]

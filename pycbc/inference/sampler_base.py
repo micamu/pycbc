@@ -223,7 +223,8 @@ class BaseMCMCSampler(_BaseSampler):
     def pos(self):
         return self._pos
 
-    def set_p0(self, prior_distributions, initial_distributions=None):
+    def set_p0(self, prior_distributions, initial_distributions=None,
+               fp=None):
         """Sets the initial position of the walkers.
 
         Parameters
@@ -263,6 +264,15 @@ class BaseMCMCSampler(_BaseSampler):
                 if param not in initial_params:
                     ps = dist.rvs(size=nwalkers)
                     p0[:, pmap[param]] = ps[param]
+        if fp is not None:
+            replace_params = [p for p in self.variable_args
+                              if not p.startswith('ringdown_')]
+            for param in dist.params:
+                initial_params.append(param)
+                fparam = param.replace('inspiral_', '')
+                if param in replace_params and fparam in fp.variable_args:
+                    p0[:, pmap[param]] = fp.read_samples(fparam,
+                                            iteration=-1)[fparam]
         self._p0 = p0
         return p0
 

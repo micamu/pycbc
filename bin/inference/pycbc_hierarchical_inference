@@ -100,6 +100,9 @@ parser.add_argument("--config-overrides", type=str, nargs="+", default=None,
                     metavar="SECTION:OPTION:VALUE",
                     help="List of section:option:value combinations to add "
                          "into the configuration file.")
+parser.add_argument("--samples-file", default=None,
+                    help="Use samples from the given file to set the initial "
+                         "postions.")
 
 # output options
 parser.add_argument("--output-file", type=str, required=True,
@@ -292,7 +295,13 @@ with ctx:
     logging.info("Setting walkers initial conditions for varying parameters")
 
     # set the initial positions
-    sampler.set_p0(distributions, initial_distributions)
+    if opts.samples_file:
+        sfp = InferenceFile(opts.samples_file, 'r')
+    else:
+        sfp = None
+    sampler.set_p0(distributions, initial_distributions, fp=sfp)
+    if opts.samples_file:
+        sfp.close()
 
     # setup checkpointing
     if opts.checkpoint_interval:

@@ -295,7 +295,7 @@ with ctx:
     logging.info("Setting walkers initial conditions for varying parameters")
 
     # set the initial positions
-    if opts.samples_file:
+    if opts.samples_file is not None:
         sfp = InferenceFile(opts.samples_file, 'r')
     else:
         sfp = None

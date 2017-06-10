@@ -267,12 +267,11 @@ class BaseMCMCSampler(_BaseSampler):
         if fp is not None:
             replace_params = [p for p in self.variable_args
                               if not p.startswith('ringdown_')]
-            for param in dist.params:
-                initial_params.append(param)
+            for param in self.variable_args:
                 fparam = param.replace('inspiral_', '')
                 if param in replace_params and fparam in fp.variable_args:
                     p0[:, pmap[param]] = fp.read_samples(fparam,
-                                            iteration=-1)[fparam]
+                                            iteration=-1)[fparam][:]
         self._p0 = p0
         return p0
 

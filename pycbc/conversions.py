@@ -551,6 +551,80 @@ def _tau_from_final_mass_spin(final_mass, final_spin, l=2, m=2):
 f0_from_final_mass_spin = numpy.vectorize(_f0_from_final_mass_spin)
 tau_from_final_mass_spin = numpy.vectorize(_tau_from_final_mass_spin)
 
+from scipy import interpolate
+class _FinalMassSpinFromF0Tau(object):
+    def __init__(self):
+        self._massinterp = None
+        self._spininterp = None
+
+    def create_interpolate(self):
+        ns = 100
+        nm = 100
+        spins1 = numpy.linspace(-0.99, 0.04, num=ns/4)
+        spins2 = numpy.exp(numpy.linspace(numpy.log(0.08),
+                                numpy.log(0.99), num=3*ns/4))
+        spins = numpy.concatenate((spins1, spins2))
+        masses = numpy.logspace(numpy.log10(10), numpy.log10(500), num=nm)
+        M, S = numpy.meshgrid(masses, spins)
+        M = M.flatten()
+        S = S.flatten()
+        f0s = numpy.zeros(M.shape)
+        taus = numpy.zeros(M.shape)
+        for ii in range(M.size):
+            f,t = get_lm_f0tau(M[ii], S[ii], 2, 2, 1)
+            f0s[ii] = f[0]
+            taus[ii] = t[0]
+        x, y = self.interpcoords(f0s, taus)
+        #d = numpy.zeros(x.size, dtype=[('x', float), ('y', float)])
+        #d['x'] = x
+        #d['y'] = y
+        #sortidx = numpy.argsort(d, order=('x', 'y'))
+        #x = x[sortidx]
+        #y = y[sortidx]
+        #M = M[sortidx]
+        #S = S[sortidx]
+        self._massinterp = interpolate.interp2d(x, y, M, kind='linear')
+        self._spininterp = interpolate.interp2d(x, y, S, kind='linear')
+
+    def massinterp(self, x, y):
+        try:
+            return numpy.array([self._massinterp(a, b) for a,b in zip(x,y)]).flatten()
+        except TypeError:
+            return self._massinterp(x,y)
+
+    def spininterp(self, x, y):
+        try:
+            return numpy.array([self._spininterp(a, b) for a,b in zip(x,y)]).flatten()
+        except TypeError:
+            return self._spininterp(x,y)
+
+    @staticmethod
+    def interpcoords(f0, tau):
+        rho = (f0**2 + (1./tau)**2)**0.5
+        phi = numpy.arctan(1./(f0*tau))
+        return rho, phi
+
+    def mass_from_f0_tau(self, f0, tau):
+        x, y = self.interpcoords(f0, tau)
+        try:
+            return self.massinterp(x, y)
+        except TypeError:
+            self.create_interpolate()
+            return self.massinterp(x, y)
+
+    def spin_from_f0_tau(self, f0, tau):
+        x, y = self.interpcoords(f0, tau)
+        try:
+            return self.spininterp(x, y)
+        except TypeError:
+            self.create_interpolate()
+            return self.spininterp(x, y)
+
+_ms2ft = _FinalMassSpinFromF0Tau()
+
+final_mass_from_f0_tau = _ms2ft.mass_from_f0_tau
+final_spin_from_f0_tau = _ms2ft.spin_from_f0_tau
+                
 #
 # =============================================================================
 #
@@ -624,5 +698,6 @@ __all__ = ['primary_mass', 'secondary_mass', 'mtotal_from_mass1_mass2',
            'spin2x_from_mass1_mass2_xi2_phi_a_phi_s',
            'spin2y_from_mass1_mass2_xi2_phi_a_phi_s',
            'chirp_distance', 'det_tc', 'f0_from_final_mass_spin',
-           'tau_from_final_mass_spin',
+           'tau_from_final_mass_spin', 'final_mass_from_f0_tau',
+           'final_spin_from_f0_tau',
           ]

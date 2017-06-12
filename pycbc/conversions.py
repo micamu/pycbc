@@ -575,28 +575,22 @@ class _FinalMassSpinFromF0Tau(object):
             f0s[ii] = f[0]
             taus[ii] = t[0]
         x, y = self.interpcoords(f0s, taus)
-        #d = numpy.zeros(x.size, dtype=[('x', float), ('y', float)])
-        #d['x'] = x
-        #d['y'] = y
-        #sortidx = numpy.argsort(d, order=('x', 'y'))
-        #x = x[sortidx]
-        #y = y[sortidx]
-        #M = M[sortidx]
-        #S = S[sortidx]
-        self._massinterp = interpolate.interp2d(x, y, M, kind='linear')
-        self._spininterp = interpolate.interp2d(x, y, S, kind='linear')
+        sortidx = x.argsort()
+        x = x[sortidx]
+        M = M[sortidx]
+        sortidx = y.argsort()
+        y = y[sortidx]
+        S = S[sortidx]
+        self._massinterp = interpolate.interp1d(x, M, kind='linear',
+                                bounds_error=False, fill_value=-1)
+        self._spininterp = interpolate.interp1d(y, S, kind='linear',
+                                bounds_error=False, fill_value=-2)
 
-    def massinterp(self, x, y):
-        try:
-            return numpy.array([self._massinterp(a, b) for a,b in zip(x,y)]).flatten()
-        except TypeError:
-            return self._massinterp(x,y)
+    def massinterp(self, x):
+        return self._massinterp(x)
 
-    def spininterp(self, x, y):
-        try:
-            return numpy.array([self._spininterp(a, b) for a,b in zip(x,y)]).flatten()
-        except TypeError:
-            return self._spininterp(x,y)
+    def spininterp(self, y):
+        return self._spininterp(y)
 
     @staticmethod
     def interpcoords(f0, tau):
@@ -605,20 +599,20 @@ class _FinalMassSpinFromF0Tau(object):
         return rho, phi
 
     def mass_from_f0_tau(self, f0, tau):
-        x, y = self.interpcoords(f0, tau)
+        x, _ = self.interpcoords(f0, tau)
         try:
-            return self.massinterp(x, y)
+            return self.massinterp(x)
         except TypeError:
             self.create_interpolate()
-            return self.massinterp(x, y)
+            return self.massinterp(x)
 
     def spin_from_f0_tau(self, f0, tau):
-        x, y = self.interpcoords(f0, tau)
+        _, y = self.interpcoords(f0, tau)
         try:
-            return self.spininterp(x, y)
+            return self.spininterp(y)
         except TypeError:
             self.create_interpolate()
-            return self.spininterp(x, y)
+            return self.spininterp(y)
 
 _ms2ft = _FinalMassSpinFromF0Tau()
 

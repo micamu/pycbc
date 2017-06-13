@@ -499,6 +499,7 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
             (N-1)*2)
         self._kmin = kmin
         self._kmax = kmax
+        self._variable_args = waveform_generator.variable_args
         if norm is None:
             norm = 4*d.delta_f
         self._norm = norm
@@ -544,6 +545,12 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
             raise ValueError("cannot filter overwhitened waveforms")
         # set default call function to logplr
         self.set_callfunc('logplr')
+
+    @property
+    def variable_args(self):
+        """Returns the variable args.
+        """
+        return self._variable_args
 
     @property
     def lognl(self):

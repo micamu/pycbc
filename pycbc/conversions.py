@@ -551,74 +551,36 @@ def _tau_from_final_mass_spin(final_mass, final_spin, l=2, m=2):
 f0_from_final_mass_spin = numpy.vectorize(_f0_from_final_mass_spin)
 tau_from_final_mass_spin = numpy.vectorize(_tau_from_final_mass_spin)
 
-from scipy import interpolate
-class _FinalMassSpinFromF0Tau(object):
-    def __init__(self):
-        self._massinterp = None
-        self._spininterp = None
 
-    def create_interpolate(self):
-        ns = 100
-        nm = 100
-        spins1 = numpy.linspace(-0.99, 0.04, num=ns/4)
-        spins2 = numpy.exp(numpy.linspace(numpy.log(0.08),
-                                numpy.log(0.99), num=3*ns/4))
-        spins = numpy.concatenate((spins1, spins2))
-        masses = numpy.logspace(numpy.log10(10), numpy.log10(500), num=nm)
-        M, S = numpy.meshgrid(masses, spins)
-        M = M.flatten()
-        S = S.flatten()
-        f0s = numpy.zeros(M.shape)
-        taus = numpy.zeros(M.shape)
-        for ii in range(M.size):
-            f,t = get_lm_f0tau(M[ii], S[ii], 2, 2, 1)
-            f0s[ii] = f[0]
-            taus[ii] = t[0]
-        x, y = self.interpcoords(f0s, taus)
-        sortidx = x.argsort()
-        x = x[sortidx]
-        M = M[sortidx]
-        sortidx = y.argsort()
-        y = y[sortidx]
-        S = S[sortidx]
-        self._massinterp = interpolate.interp1d(x, M, kind='linear',
-                                bounds_error=False, fill_value=-1)
-        self._spininterp = interpolate.interp1d(y, S, kind='linear',
-                                bounds_error=False, fill_value=-2)
+# following are from Berti et al. 2006.
+# keys are l,m. Constants are for converting from
+# frequency and damping time to mass and spin
+_berti_spin_constants = {
+    (2,2) : (0.7, 1.4187, -0.4990),
+    }
 
-    def massinterp(self, x):
-        return self._massinterp(x)
+_berti_mass_constants = {
+    (2,2) : (1.5251, -1.1568, 0.1292),
+    }
 
-    def spininterp(self, y):
-        return self._spininterp(y)
+def final_spin_from_f0_tau(f0, tau, l=2, m=2):
+    """Returns the final spin based on the given frequency and damping time.
+    """
+    # from Berti et al. 2006
+    a, b, c = _berti_spin_constants[l,m]
+    Q = f0 * tau * numpy.pi
+    return 1. - ((Q-a)/b)**(1./c)
 
-    @staticmethod
-    def interpcoords(f0, tau):
-        rho = (f0**2 + (1./tau)**2)**0.5
-        phi = numpy.arctan(1./(f0*tau))
-        return rho, phi
 
-    def mass_from_f0_tau(self, f0, tau):
-        x, _ = self.interpcoords(f0, tau)
-        try:
-            return self.massinterp(x)
-        except TypeError:
-            self.create_interpolate()
-            return self.massinterp(x)
-
-    def spin_from_f0_tau(self, f0, tau):
-        _, y = self.interpcoords(f0, tau)
-        try:
-            return self.spininterp(y)
-        except TypeError:
-            self.create_interpolate()
-            return self.spininterp(y)
-
-_ms2ft = _FinalMassSpinFromF0Tau()
-
-final_mass_from_f0_tau = _ms2ft.mass_from_f0_tau
-final_spin_from_f0_tau = _ms2ft.spin_from_f0_tau
-                
+def final_mass_from_f0_tau(f0, tau, l=2, m=2):
+    """Returns the final mass (in solar masses) based on the given frequency
+    and damping time.
+    """
+    # from Berti et al. 2006
+    spin = final_spin_from_f0_tau(f0, tau, l=l, m=m)
+    a, b, c = _berti_mass_constants[l,m]
+    return (a + b*(1-spin)**c)/(2*numpy.pi*f0*lal.MTSUN_SI)
+        
 #
 # =============================================================================
 #

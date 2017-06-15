@@ -547,6 +547,12 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
         self.set_callfunc('logplr')
 
     @property
+    def detector_names(self):
+        """Returns the set of detector names used by all of the events.
+        """
+        return self.waveform_generator.detector_names
+
+    @property
     def variable_args(self):
         """Returns the variable args.
         """

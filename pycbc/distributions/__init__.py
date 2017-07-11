@@ -31,6 +31,7 @@ distribs = {
     UniformPowerLaw.name : UniformPowerLaw,
     UniformRadius.name : UniformRadius,
     Uniform.name : Uniform,
+    UniformF0Tau.name: UniformF0Tau,
     UniformAngle.name : UniformAngle,
     CosAngle.name : CosAngle,
     SinAngle.name : SinAngle,

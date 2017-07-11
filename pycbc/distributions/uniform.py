@@ -192,8 +192,11 @@ class UniformF0Tau(Uniform):
 
     name = 'uniform_f0_tau'
 
-    def __init__(self, f_0=None, tau=None, final_mass=None, final_spin=None):
-        super(UniformF0Tau, self).__init__(f_0=f_0, tau=tau)
+    def __init__(self, rdfreq='f_0', damping_time='tau', final_mass=None,
+                 final_spin=None, **kwargs):
+        self.rdfreq = rdfreq
+        self.damping_time = damping_time
+        super(UniformF0Tau, self).__init__(**kwargs)
         if final_mass is None:
             final_mass = (1., numpy.inf)
         elif isinstance(final_mass, str) or isinstance(final_mass, unicode):
@@ -214,8 +217,8 @@ class UniformF0Tau(Uniform):
         return isin
 
     def _constraints(self, params):
-        f_0 = params['f_0']
-        tau = params['tau']
+        f_0 = params[self.rdfreq]
+        tau = params[self.damping_time]
         mf = conversions.final_mass_from_f0_tau(f_0, tau)
         sf = conversions.final_spin_from_f0_tau(f_0, tau)
         return (self.final_mass_bounds.__contains__(mf)) & (

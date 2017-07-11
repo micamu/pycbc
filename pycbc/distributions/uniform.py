@@ -196,8 +196,12 @@ class UniformF0Tau(Uniform):
         super(UniformF0Tau, self).__init__(f_0=f_0, tau=tau)
         if final_mass is None:
             final_mass = (1., numpy.inf)
+        elif isinstance(final_mass, str) or isinstance(final_mass, unicode):
+            final_mass = map(float, final_mass.split(','))
         if final_spin is None:
-            final_spin = (-1., 1.)
+            final_spin = (-0.996, 0.996)
+        elif isinstance(final_spin, str) or isinstance(final_spin, unicode):
+            final_spin = map(float, final_spin.split(','))
         self.final_mass_bounds = bounded.boundaries.Bounds(
             min_bound=final_mass[0], max_bound=final_mass[1])
         self.final_spin_bounds = bounded.boundaries.Bounds(

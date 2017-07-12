@@ -569,8 +569,10 @@ def final_spin_from_f0_tau(f0, tau, l=2, m=2):
     # from Berti et al. 2006
     a, b, c = _berti_spin_constants[l,m]
     Q = f0 * tau * numpy.pi
-    return 1. - ((Q-a)/b)**(1./c)
-
+    try:
+        return 1. - ((Q-a)/b)**(1./c)
+    except ValueError:
+        return numpy.nan
 
 def final_mass_from_f0_tau(f0, tau, l=2, m=2):
     """Returns the final mass (in solar masses) based on the given frequency

@@ -134,6 +134,7 @@ def time_from_frequencyseries(htilde, sample_frequencies=None,
         kmax = min(kmax, kmin + discont_idx[0]-1)
     time[:kmin] = time[kmin]
     time[kmax:] = time[kmax]
+    time += float(htilde.epoch)
     return FrequencySeries(time.astype(real_same_precision_as(htilde)),
         delta_f=htilde.delta_f, epoch=htilde.epoch,
         copy=False)

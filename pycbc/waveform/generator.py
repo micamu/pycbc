@@ -642,7 +642,7 @@ class FDomainDetFrameGenerator(object):
                     try:
                         thish = self.window(thish, break_time=break_time,
                                             ifo=detname,
-                                            params=self.current_params,
+                                            params=self.rframe_generator.current_params,
                                             copy=False)
                     except NoWaveformError as e:
                         # reset the taper time

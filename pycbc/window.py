@@ -25,11 +25,70 @@
 This modules provides classes and functions for windowing data.
 """
 
+from __future__ import absolute_import
 import numpy
 from scipy import signal
 import lalsimulation as sim
 from pycbc.types import Array, TimeSeries, FrequencySeries, float32, float64
-from pycbc.waveform import apply_fd_time_shift
+from pycbc.opt import omp_libs, omp_flags
+from pycbc import WEAVE_FLAGS
+from weave import inline
+
+_apply_shift_code = r"""
+    #include <math.h>
+    // cast the output to a float array for faster processing
+    // this takes advantage of the fact that complex arrays store
+    // their real and imaginary values next to each other in memory
+    double* outptr = (double*) out;
+    outptr += 2*kmin; // move to the start position
+    double cphi = (double) phi;
+    double re_h, im_h;
+    int update_interval = 100;
+    int jj = update_interval;
+    double re_shift, im_shift, re_lastshift, im_lastshift;
+    double re_inc = cos(cphi);
+    double im_inc = sin(cphi);
+    for (int kk=kmin; kk<kmax; kk++){
+        if (jj == update_interval) {
+            // recompute the added value to reduce numerical error
+            re_shift = cos(cphi * (double) kk);
+            im_shift = sin(cphi * (double) kk);
+            jj = 0;
+        }
+        re_h = *outptr;
+        im_h = *(outptr+1);
+        *outptr = re_shift * re_h - im_shift * im_h; // the real part
+        *(outptr+1) = re_shift * im_h + im_shift * re_h; // the imag part
+        // increase the shift for the next element
+        re_lastshift = re_shift;
+        im_lastshift = im_shift;
+        re_shift = re_lastshift * re_inc - im_lastshift * im_inc;
+        im_shift = re_lastshift * im_inc + im_lastshift * re_inc;
+        jj += 1;
+        outptr += 2; // move to the next element
+    }
+    """
+# for single precision
+_apply_shift_code32 = _apply_shift_code.replace('double', 'float')
+
+def apply_fseries_time_shift(htilde, dt, kmin=0, copy=True):
+    """Shifts a frequency domain waveform in time. The waveform is assumed to
+    be sampled at equal frequency intervals.
+    """
+    out = numpy.array(htilde.data, copy=copy)
+    phi = -2 * numpy.pi * dt * htilde.delta_f
+    kmax = len(htilde)
+    if htilde.precision == 'single':
+        code = _apply_shift_code32
+    else:
+        code = _apply_shift_code
+    inline(code, ['out', 'phi', 'kmin', 'kmax'],
+           extra_compile_args=[WEAVE_FLAGS]+omp_flags,
+           libraries=omp_libs)
+    if copy:
+        htilde = FrequencySeries(out, delta_f=htilde.delta_f, epoch=htilde.epoch,
+                                 copy=False)
+    return htilde
 
 # values for informing data whitening level
 UNWHITENED = 0
@@ -354,7 +413,7 @@ class TimeDomainWindow(object):
         except KeyError:
             # generate the window at this dt
             win = signal.get_window(self.left_taper, 2*taper_size)
-            win = TimeSeries(win, delta_t=ht.delta_t)
+            win = TimeSeries(win, delta_t=delta_t)
             if t_shift is not None:
                 # Double the window length and round to
                 # the next power of 2 before fft
@@ -366,7 +425,7 @@ class TimeDomainWindow(object):
                     new_len = 2*orig_len
                 win.resize(new_len)
                 win = win.to_frequencyseries()
-                win = apply_fd_time_shift(win, tshift)
+                win = apply_fseries_time_shift(win, tshift)
                 win = win.to_timeseries()
                 win.resize(orig_len)
             self.left_window[taper_size] = Array(win[:taper_size])
@@ -396,7 +455,7 @@ class TimeDomainWindow(object):
         except KeyError:
             # generate the window at this dt
             win = signal.get_window(self.right_taper, 2*taper_size)
-            win = TimeSeries(win, delta_t=ht.delta_t)
+            win = TimeSeries(win, delta_t=delta_t)
             if t_shift is not None:
                 # Double the window length and round to
                 # the next power of 2 before fft
@@ -408,7 +467,7 @@ class TimeDomainWindow(object):
                     new_len = 2*orig_len
                 win.resize(new_len)
                 win = win.to_frequencyseries()
-                win = apply_fd_time_shift(win, tshift)
+                win = apply_fseries_time_shift(win, tshift)
                 win = win.to_timeseries()
                 win.resize(orig_len)
             self.right_window[taper_size] = Array(win[taper_size:])

@@ -330,7 +330,7 @@ class TimeDomainWindow(object):
         htilde[:kmax] *= wh[:kmax]
         return htilde
 
-    def get_left_window(self, delta_t):
+    def get_left_window(self, delta_t, tshift=None):
         """Returns the left window to use for tapering.
 
         If the given `delta_t` has not previously been used, the window will
@@ -340,6 +340,8 @@ class TimeDomainWindow(object):
         ----------
         delta_t : float
             The dt of the time series the taper will be applied to.
+        tshift : float
+            The amount of time the window has to be shifted
 
         Returns
         -------
@@ -352,10 +354,23 @@ class TimeDomainWindow(object):
         except KeyError:
             # generate the window at this dt
             win = signal.get_window(self.left_taper, 2*taper_size)
+            win = TimeSeries(win, delta_t=ht.delta_t)
+            # Double the window length and round to the next power of 2 before fft
+            orig_len = len(win)
+            if numpy.log2(2*orig_len) % 1 != 0:
+                n = int(numpy.log2(2*orig_len)) + 1
+                new_len = 2**n
+                win.resize(new_len)
+            else:
+                new_len = 2 * orig_len
+            win = win.to_frequencyseries()
+            win = apply_fd_time_shift(win, tshift)
+            win = win.to_timeseries()
+            win.resize(orig_len)
             self.left_window[taper_size] = Array(win[:taper_size])
             return self.left_window[taper_size]
 
-    def get_right_window(self, delta_t):
+    def get_right_window(self, delta_t, tshift=None):
         """Returns the right window to use for tapering.
 
         If the given `delta_t` has not previously been used, the window will
@@ -365,6 +380,8 @@ class TimeDomainWindow(object):
         ----------
         delta_t : float
             The dt of the time series the taper will be applied to.
+        tshift : float
+            The amount of time the window has to be shifted
 
         Returns
         -------
@@ -377,7 +394,22 @@ class TimeDomainWindow(object):
         except KeyError:
             # generate the window at this dt
             win = signal.get_window(self.right_taper, 2*taper_size)
+            # Double the window length and round to the next power of 2 before fft
+            orig_len = len(win)
+            if numpy.log2(2*orig_len) % 1 != 0:
+                n = int(numpy.log2(2*orig_len)) + 1
+                new_len = 2**n
+                win.resize(new_len)
+            else:
+                new_len = 2 * orig_len
+            win = win.to_frequencyseries()
+            win = apply_fd_time_shift(win, tshift)
+            win = win.to_timeseries()
+            win.resize(orig_len)
             self.right_window[taper_size] = Array(win[taper_size:])
+            # After shifting, the window will have part of the half we don't want
+            # Force the first value to be 1.
+            self.right_window[taper_size][0] = 1.
             return self.right_window[taper_size]
 
     @staticmethod
@@ -559,16 +591,12 @@ class TimeDomainWindow(object):
         if left_time is not None:
             if right_time is not None and right_time <= left_time:
                 raise ValueError("right_time must be > left_time")
-            win = self.get_left_window(ht.delta_t)
-            startidx = int(left_time / ht.delta_t)
-            endidx = startidx + len(win)
             # The start of the window is limited by the sample rate.
             # Shift the window if necessary
             tshift = (left_time / ht.delta_t) % 1
-            win = TimeSeries(win, delta_t=ht.delta_t)
-            win = win.to_frequencyseries()
-            win = apply_fd_time_shift(win, tshift)
-            win = win.to_timeseries()
+            win = self.get_left_window(ht.delta_t, tshift=tshift)
+            startidx = int(left_time / ht.delta_t)
+            endidx = startidx + len(win)
             # we don't have to worry about the startidx being > len(ht), since
             # that would have triggered the catch that the left time be before
             # the end of the data, above
@@ -577,16 +605,12 @@ class TimeDomainWindow(object):
         #   apply right taper
         #
         if right_time is not None:
-            win = self.get_right_window(ht.delta_t)
-            endidx = int(numpy.ceil(right_time / ht.delta_t))
-            startidx = endidx - len(win)
             # The start of the window is limited by the sample rate.
             # Shift the window if necessary
-            tshift = (right_time / ht.delta_t) % 1
-            win = TimeSeries(win, delta_t=ht.delta_t)
-            win = win.to_frequencyseries()
-            win = apply_fd_time_shift(win, tshift)
-            win = win.to_timeseries()
+            tshift = (left_time / ht.delta_t) % 1
+            win = self.get_right_window(ht.delta_t, tshift=tshift)
+            endidx = int(numpy.ceil(right_time / ht.delta_t))
+            startidx = endidx - len(win)
             # we don't have to worry about the endidx being < 0, since
             # that would have triggered the catch that the left time be before
             # the end of the data, above

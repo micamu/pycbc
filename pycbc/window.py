@@ -29,6 +29,7 @@ import numpy
 from scipy import signal
 import lalsimulation as sim
 from pycbc.types import Array, TimeSeries, FrequencySeries, float32, float64
+from pycbc.waveform import apply_fd_time_shift
 
 # values for informing data whitening level
 UNWHITENED = 0
@@ -561,6 +562,13 @@ class TimeDomainWindow(object):
             win = self.get_left_window(ht.delta_t)
             startidx = int(left_time / ht.delta_t)
             endidx = startidx + len(win)
+            # The start of the window is limited by the sample rate.
+            # Shift the window if necessary
+            tshift = (left_time / ht.delta_t) % 1
+            win = TimeSeries(win, delta_t=ht.delta_t)
+            win = win.to_frequencyseries()
+            win = apply_fd_time_shift(win, tshift)
+            win = win.to_timeseries()
             # we don't have to worry about the startidx being > len(ht), since
             # that would have triggered the catch that the left time be before
             # the end of the data, above
@@ -572,6 +580,13 @@ class TimeDomainWindow(object):
             win = self.get_right_window(ht.delta_t)
             endidx = int(numpy.ceil(right_time / ht.delta_t))
             startidx = endidx - len(win)
+            # The start of the window is limited by the sample rate.
+            # Shift the window if necessary
+            tshift = (right_time / ht.delta_t) % 1
+            win = TimeSeries(win, delta_t=ht.delta_t)
+            win = win.to_frequencyseries()
+            win = apply_fd_time_shift(win, tshift)
+            win = win.to_timeseries()
             # we don't have to worry about the endidx being < 0, since
             # that would have triggered the catch that the left time be before
             # the end of the data, above

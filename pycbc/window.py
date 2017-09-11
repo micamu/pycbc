@@ -362,9 +362,9 @@ class TimeDomainWindow(object):
                 if numpy.log2(2*orig_len) % 1 != 0:
                     n = int(numpy.log2(2*orig_len)) + 1
                     new_len = 2**n
-                    win.resize(new_len)
                 else:
                     new_len = 2*orig_len
+                win.resize(new_len)
                 win = win.to_frequencyseries()
                 win = apply_fd_time_shift(win, tshift)
                 win = win.to_timeseries()
@@ -404,9 +404,9 @@ class TimeDomainWindow(object):
                 if numpy.log2(2*orig_len) % 1 != 0:
                     n = int(numpy.log2(2*orig_len)) + 1
                     new_len = 2**n
-                    win.resize(new_len)
                 else:
                     new_len = 2*orig_len
+                win.resize(new_len)
                 win = win.to_frequencyseries()
                 win = apply_fd_time_shift(win, tshift)
                 win = win.to_timeseries()
@@ -598,7 +598,7 @@ class TimeDomainWindow(object):
                 raise ValueError("right_time must be > left_time")
             # The start of the window is limited by the sample rate.
             # Shift the window if necessary
-            extra_t = (left_time / ht.delta_t) % 1
+            extra_t = left_time % ht.delta_t
             if extra_t != 0:
                 tshift = extra_t
             else:
@@ -616,7 +616,7 @@ class TimeDomainWindow(object):
         if right_time is not None:
             # The start of the window is limited by the sample rate.
             # Shift the window if necessary
-            extra_t = (right_time / ht.delta_t) % 1
+            extra_t = right_time % ht.delta_t
             if extra_t != 0:
                 tshift = extra_t
             else:

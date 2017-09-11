@@ -414,7 +414,7 @@ class TimeDomainWindow(object):
             # generate the window at this dt
             win = signal.get_window(self.left_taper, 2*taper_size)
             win = TimeSeries(win, delta_t=delta_t)
-            if t_shift is not None:
+            if tshift is not None:
                 # Double the window length and round to
                 # the next power of 2 before fft
                 orig_len = len(win)
@@ -456,7 +456,7 @@ class TimeDomainWindow(object):
             # generate the window at this dt
             win = signal.get_window(self.right_taper, 2*taper_size)
             win = TimeSeries(win, delta_t=delta_t)
-            if t_shift is not None:
+            if tshift is not None:
                 # Double the window length and round to
                 # the next power of 2 before fft
                 orig_len = len(win)

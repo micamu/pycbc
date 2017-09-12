@@ -673,7 +673,7 @@ class FDomainDetFrameGenerator(object):
                 tc = self.current_params['tc'] + \
                      self.current_params['tc_offset'] + tshift
                 hp._epoch = self._epoch
-                hp = apply_fd_time_shift(hp, td, copy=False)
+                hp = apply_fd_time_shift(hp, tc, copy=False)
             h['RF'] = hp
         return h
 

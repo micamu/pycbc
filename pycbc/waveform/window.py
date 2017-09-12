@@ -140,7 +140,7 @@ class WaveformTDWindow(TimeDomainWindow):
             self.right_taper_freqfunc = None
 
     def _apply_to_frequencyseries(self, h, break_time=0., params=None,
-                                  ifo=None, copy=True):
+                                  from_timeseries=False, ifo=None, copy=True):
         """Applies window assuming h is a FrequencySeries.
         """
         # the number of seconds from the beginning of the (unshifted) segment
@@ -164,7 +164,8 @@ class WaveformTDWindow(TimeDomainWindow):
                 # just assume the waveform spans the entire segment
                 left_time = -tcoa
             else:
-                left_time = time_from_frequencyseries(h[kmin:kmin+2])[0]
+                left_time = time_from_frequencyseries(h[kmin:kmin+2],
+                                        from_timeseries=from_timeseries)[0]
         left_freq = self.left_taper_frequency
         if self.left_taper_freqfunc is not None:
             if params is None:
@@ -186,7 +187,8 @@ class WaveformTDWindow(TimeDomainWindow):
                 # apply
                 t = None
             else:
-                t = time_from_frequencyseries(h[k:k+2])[0]
+                t = time_from_frequencyseries(h[k:k+2],
+                                        from_timeseries=from_timeseries)[0]
             if left_time is None:
                 left_time = t
             elif t is not None:
@@ -216,7 +218,8 @@ class WaveformTDWindow(TimeDomainWindow):
                 # right taper ends after the waveform ends, so nothing to apply
                 t = None
             else:
-                t = time_from_frequencyseries(h[k:k+2])[0]
+                t = time_from_frequencyseries(h[k:k+2],
+                                        from_timeseries=from_timeseries)[0]
             if right_time is None:
                 right_time = t
             elif t is not None:
@@ -234,7 +237,7 @@ class WaveformTDWindow(TimeDomainWindow):
         return h
 
     def _apply_to_timeseries(self, h, break_time=0., params=None,
-                             ifo=None, copy=True):
+                             ifo=None, from_timeseries=False, copy=True):
         """Applies window assuming h is a TimeSeries.
         """
         if self.left_taper_frequency is not None or \
@@ -248,6 +251,7 @@ class WaveformTDWindow(TimeDomainWindow):
             h = h.to_frequencyseries(delta_f=df)
             h = self._apply_to_frequencyseries(h, break_time=break_time,
                                                params=params, ifo=ifo,
+                                               from_timeseries=from_timeseries,
                                                copy=False).to_timeseries()
         else:
             # the number of seconds from the beginning of the (unshifted)
@@ -295,7 +299,8 @@ class WaveformTDWindow(TimeDomainWindow):
                 raise NoWaveformError(e)
         return h
 
-    def apply_window(self, h, break_time=0., params=None, ifo=None, copy=True):
+    def apply_window(self, h, break_time=0., params=None, ifo=None,
+                     from_timeseries=False, copy=True):
         """Applies the window to the given waveform.
 
         This function differs from `TimeDomainWindow.apply_window` in that it
@@ -320,16 +325,23 @@ class WaveformTDWindow(TimeDomainWindow):
             If the waveform will be (over-)whitened before tapering, and the
             psds attribute is a dictionary, the ifo of the detector to use.
             See `TimeDomainWindow.apply_window` for details.
+        from_timeseries : bool, optional
+            If this function is called with a FrequencySeries waveform that
+            originally comes from a time domain approximant, set this option
+            to True to get the correct t(f). Default us False.
         copy : bool, optional
             Whether to copy the data before applying the window/whitening. If
             False, the taper will be applied in place. Default is True.
         """
         if isinstance(h, TimeSeries):
             return self._apply_to_timeseries(h, break_time=break_time,
-                                             params=params, ifo=ifo, copy=copy)
+                                             params=params, ifo=ifo,
+                                             from_timeseries=from_timeseries,
+                                             copy=copy)
         elif isinstance(h, FrequencySeries):
             return self._apply_to_frequencyseries(h, break_time=break_time,
                                                   params=params, ifo=ifo,
+                                                  from_timeseries=from_timeseries,
                                                   copy=copy)
         else:
             raise TypeError("h must be either TimeSeries or FrequencySeries")

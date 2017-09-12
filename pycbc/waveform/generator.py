@@ -600,6 +600,7 @@ class FDomainDetFrameGenerator(object):
             # so we add an additional shift to account for it
             tshift = 1./df - abs(hp._epoch)
             break_time = 0. # for the window, if is supplied
+            from_timeseries = True
         else:
             tshift = 0.
             # we need to supply a break time for the window, if one will be
@@ -607,6 +608,7 @@ class FDomainDetFrameGenerator(object):
             # the waveform, so we're safe setting the break time to be 1/4
             # the length of the segment
             break_time = 1./(4*hp.delta_f)
+            from_timeseries = False
         h = {}
         if self.detector_names != ['RF']:
             ra = self.current_params['ra']
@@ -643,6 +645,7 @@ class FDomainDetFrameGenerator(object):
                         thish = self.window(thish, break_time=break_time,
                                             ifo=detname,
                                             params=self.rframe_generator.current_params,
+                                            from_timeseries=from_timeseries,
                                             copy=False)
                     except NoWaveformError as e:
                         # reset the taper time

@@ -87,7 +87,7 @@ def amplitude_from_frequencyseries(htilde):
         copy=False)
 
 def time_from_frequencyseries(htilde, sample_frequencies=None,
-        discont_threshold=0.99*numpy.pi):
+        discont_threshold=0.99*numpy.pi, from_timeseries=False):
     """Computes time as a function of frequency from the given
     frequency-domain waveform. This assumes the stationary phase
     approximation. Any frequencies lower than the first non-zero value in
@@ -115,6 +115,11 @@ def time_from_frequencyseries(htilde, sample_frequencies=None,
     discont_threshold : {0.99*pi, float}
         If the difference in the phase changes by more than this threshold,
         it is considered to be a discontinuity. Default is 0.99*pi.
+    from_timeseries : {False, bool}
+        If the htilde has been generated from a time domain approximant, the
+        epoch is different than if it has been generated directly from a
+        frequency domain approximant. Setting this to true will correct for the
+        time difference if htilde comes from the time domain.
 
     Returns
     -------
@@ -134,7 +139,8 @@ def time_from_frequencyseries(htilde, sample_frequencies=None,
         kmax = min(kmax, kmin + discont_idx[0]-1)
     time[:kmin] = time[kmin]
     time[kmax:] = time[kmax]
-    time += float(htilde.epoch)
+    if from_timeseries is True:
+        time += float(htilde.epoch)
     return FrequencySeries(time.astype(real_same_precision_as(htilde)),
         delta_f=htilde.delta_f, epoch=htilde.epoch,
         copy=False)

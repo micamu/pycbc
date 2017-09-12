@@ -409,27 +409,28 @@ class TimeDomainWindow(object):
         """
         taper_size = int(self.left_taper_duration / delta_t)
         try:
-            return self.left_window[taper_size]
+            win = self.left_window[taper_size]
         except KeyError:
             # generate the window at this dt
             win = signal.get_window(self.left_taper, 2*taper_size)
-            win = TimeSeries(win, delta_t=delta_t)
-            if tshift is not None:
-                # Double the window length and round to
-                # the next power of 2 before fft
-                orig_len = len(win)
-                if numpy.log2(2*orig_len) % 1 != 0:
-                    n = int(numpy.log2(2*orig_len)) + 1
-                    new_len = 2**n
-                else:
-                    new_len = 2*orig_len
-                win.resize(new_len)
-                win = win.to_frequencyseries()
-                win = apply_fseries_time_shift(win, tshift)
-                win = win.to_timeseries()
-                win.resize(orig_len)
-            self.left_window[taper_size] = Array(win[:taper_size])
-            return self.left_window[taper_size]
+            self.left_window[taper_size] = win
+        win = TimeSeries(win, delta_t=delta_t)
+        # Shift window if requested
+        if tshift is not None:
+            # Double the window length and round to
+            # the next power of 2 before fft
+            orig_len = len(win)
+            if numpy.log2(2*orig_len) % 1 != 0:
+                n = int(numpy.log2(2*orig_len)) + 1
+                new_len = 2**n
+            else:
+                new_len = 2*orig_len
+            win.resize(new_len)
+            win = win.to_frequencyseries()
+            win = apply_fseries_time_shift(win, tshift)
+            win = win.to_timeseries()
+            win = win[:orig_len]
+        return Array(win[:taper_size])
 
     def get_right_window(self, delta_t, tshift=None):
         """Returns the right window to use for tapering.
@@ -451,30 +452,32 @@ class TimeDomainWindow(object):
         """
         taper_size = int(self.right_taper_duration / delta_t)
         try:
-            return self.right_window[taper_size]
+            win = self.right_window[taper_size]
         except KeyError:
             # generate the window at this dt
             win = signal.get_window(self.right_taper, 2*taper_size)
-            win = TimeSeries(win, delta_t=delta_t)
-            if tshift is not None:
-                # Double the window length and round to
-                # the next power of 2 before fft
-                orig_len = len(win)
-                if numpy.log2(2*orig_len) % 1 != 0:
-                    n = int(numpy.log2(2*orig_len)) + 1
-                    new_len = 2**n
-                else:
-                    new_len = 2*orig_len
-                win.resize(new_len)
-                win = win.to_frequencyseries()
-                win = apply_fseries_time_shift(win, tshift)
-                win = win.to_timeseries()
-                win.resize(orig_len)
-            self.right_window[taper_size] = Array(win[taper_size:])
-            # After shifting, the window will have part of the half we don't want
-            # Force the first value to be 1.
-            self.right_window[taper_size][0] = 1.
-            return self.right_window[taper_size]
+            self.right_window[taper_size] = win
+        # Shift window if requested
+        win = TimeSeries(win, delta_t=delta_t)
+        if tshift is not None:
+            # Double the window length and round to
+            # the next power of 2 before fft
+            orig_len = len(win)
+            if numpy.log2(2*orig_len) % 1 != 0:
+                n = int(numpy.log2(2*orig_len)) + 1
+                new_len = 2**n
+            else:
+                new_len = 2*orig_len
+            win.resize(new_len)
+            win = win.to_frequencyseries()
+            win = apply_fseries_time_shift(win, tshift)
+            win = win.to_timeseries()
+            win = win[:orig_len]
+        win = Array(win[taper_size:])
+        # After shifting, the window will have part of the half we don't want
+        # Force the first value to be 1.
+        win[0] = 1.
+        return win
 
     @staticmethod
     def _taper_by_idx(ht, win, startidx, endidx, side):

@@ -144,8 +144,8 @@ def inference_opts_from_config(cp, section, additional_opts=None):
 
 
 def read_args_from_config(cp, section_group=None):
-    """Given an open config file, loads the static and variable arguments to
-    use in the parameter estmation run.
+    """Given an open config file, loads the static, variable and fixed
+    arguments to use in the parameter estmation run.
 
     Parameters
     ----------
@@ -164,6 +164,9 @@ def read_args_from_config(cp, section_group=None):
         The names of the parameters to vary in the PE run.
     static_args : dict
         Dictionary of names -> values giving the parameters to keep fixed.
+    fixed_args : dict
+        Dictionary of names:list(values) giving the parameters to keep
+        fixed for each individual walker.
     """
     logging.info("Loading arguments")
     if section_group is not None:
@@ -193,7 +196,16 @@ def read_args_from_config(cp, section_group=None):
             # return val if it does not begin (end) with [ (])
             static_args[key] = convert_liststring_to_list(val) 
 
-    return variable_args, static_args
+    # check if there are fixed arguments and read values from file
+    try:
+        filename = cp.get_opt_tags("{}fixed_args".format(section_prefix), 'file')
+    except KeyError:
+        return variable_args, static_args
+
+    f = h5py.File(filename, 'r')
+    fixed_args = dict([(key, f[key]) for key in f.keys()])
+        
+    return variable_args, static_args, fixed_args
 
 def waveform_window_from_config(cp, section='window', psds=None):
     """Given an open config file, loads a window to use for waveform

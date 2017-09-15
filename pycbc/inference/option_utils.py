@@ -200,7 +200,7 @@ def read_args_from_config(cp, section_group=None):
     try:
         filename = cp.get_opt_tags("{}fixed_args".format(section_prefix), 'file')
     except KeyError:
-        return variable_args, static_args
+        return variable_args, static_args, None
 
     f = h5py.File(filename, 'r')
     fixed_args = dict([(key, f[key]) for key in f.keys()])

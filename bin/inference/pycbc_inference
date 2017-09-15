@@ -140,13 +140,10 @@ with ctx:
     cp = option_utils.config_parser_from_cli(opts)
 
     # get the vairable and static arguments from the config file
-    args = option_utils.read_args_from_config(cp)
-    variable_args, static_args = args[0], args[1]
-    try:
-        fixed_args = args[2]
+    variable_args, static_args, fixed_args = option_utils.read_args_from_config(cp)
+    if fixed_args is not None:
         varargs = variable_args + fixed_args.keys()
-    except KeyError:
-        fixed_args = None
+    else:
         varargs = variable_args
 
     # get prior distribution for each variable parameter

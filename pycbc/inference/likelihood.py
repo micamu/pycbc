@@ -238,7 +238,10 @@ class _BaseLikelihoodEvaluator(object):
     def variable_args(self):
         """Returns the variable args used by the waveform generator.
         """
-        return self.waveform_generator.variable_args
+        if fixed_args is None:
+            return self.waveform_generator.variable_args
+        else:
+            return set(self._waveform_generator.variable_args) - set(map(str,self._fixed_args.keys()))
     @property
     def waveform_generator(self):
         """Returns the waveform generator that was set."""
@@ -513,7 +516,11 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
             (N-1)*2)
         self._kmin = kmin
         self._kmax = kmax
-        self._variable_args = waveform_generator.variable_args
+        if fixed_args is None:
+            self._variable_args = waveform_generator.variable_args
+        else:
+            self._variable_args = set(self._waveform_generator.variable_args) \
+                                - set(map(str,self._fixed_args.keys()))
         if norm is None:
             norm = 4*d.delta_f
         self._norm = norm
@@ -596,7 +603,7 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
             The value of the log likelihood ratio evaluated at the given point.
         """
         lr = 0.
-        for arg in self._variable_args:
+        for arg in  waveform_generator.variable_args:
             if arg in self._fixed_args.keys():
                 if id is None:
                     raise ValueError('The walker\'s ID number is required '

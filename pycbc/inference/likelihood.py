@@ -215,7 +215,7 @@ class _BaseLikelihoodEvaluator(object):
                 checkprior_args = set(self._waveform_generator.variable_args)
             else:
                 checkprior_args = set(self._waveform_generator.variable_args) \
-                                - set(self._fixed_args.keys())
+                                - set(map(str,self._fixed_args.keys()))
             if set(prior.variable_args) != checkprior_args:
                 raise ValueError("variable args of prior and waveform "
                     "generator do not match")
@@ -344,10 +344,10 @@ class _BaseLikelihoodEvaluator(object):
         """
         cls._callfunc = getattr(cls, funcname)
 
-    def __call__(self, params):
+    def __call__(self, params, id=None):
         # apply any boundary conditions to the parameters before
         # generating/evaluating
-        return self._callfunc(self._prior.apply_boundary_conditions(params))
+        return self._callfunc(self._prior.apply_boundary_conditions(params, id))
 
 
 
@@ -504,7 +504,7 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
         # set up the boiler-plate attributes; note: we'll compute the
         # log evidence later
         super(GaussianLikelihood, self).__init__(waveform_generator, data,
-            prior=prior, return_meta=return_meta)
+            prior=prior, return_meta=return_meta, fixed_args=fixed_args)
         # we'll use the first data set for setting values
         d = data.values()[0]
         N = len(d)
@@ -597,12 +597,12 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
         """
         lr = 0.
         for arg in self._variable_args:
-            if arg in self._fixed_args.keys()
-                try:
-                    params.append(self._fixed_args[arg][id])
-                except KeyError:
-                    return ValueError('The walker's ID number is required '
+            if arg in self._fixed_args.keys():
+                if id is None:
+                    raise ValueError('The walker\'s ID number is required '
                                       'when providing fixed arguments.')
+                else:
+                    params.append(self._fixed_args[arg][id])
         try:
             wfs = self._waveform_generator.generate(*params)
         except NoWaveformError:

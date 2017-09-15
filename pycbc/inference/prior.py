@@ -72,7 +72,7 @@ class PriorEvaluator(object):
             raise ValueError("variable_args %s " %(','.join(extra_params)) +
                 "are not in any of the provided distributions")
 
-    def apply_boundary_conditions(self, params):
+    def apply_boundary_conditions(self, params, id=None):
         """Applies each distributions' boundary conditions to the given list
         of parameters, returning a new list with the conditions applied.
 

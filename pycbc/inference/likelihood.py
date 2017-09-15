@@ -347,7 +347,7 @@ class _BaseLikelihoodEvaluator(object):
     def __call__(self, params, id=None):
         # apply any boundary conditions to the parameters before
         # generating/evaluating
-        return self._callfunc(self._prior.apply_boundary_conditions(params, id))
+        return self._callfunc(self._prior.apply_boundary_conditions(params), id)
 
 
 

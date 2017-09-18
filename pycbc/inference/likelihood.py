@@ -524,13 +524,11 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
             (N-1)*2)
         self._kmin = kmin
         self._kmax = kmax
-        print 'generator variable args', waveform_generator.variable_args
         if fixed_args is None:
             self._variable_args = waveform_generator.variable_args
         else:
             self._variable_args = [arg for arg in waveform_generator.variable_args
                                    if arg not in map(str,self._fixed_args.keys())]
-        print 'likelihood variable args', self._variable_args
         if norm is None:
             norm = 4*d.delta_f
         self._norm = norm
@@ -620,7 +618,6 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
                                       'when providing fixed arguments.')
                 else:
                     params.append(self._fixed_args[arg][id])
-        print 'calculating likelihood', id, params
         try:
             wfs = self._waveform_generator.generate(*params)
         except NoWaveformError:

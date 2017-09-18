@@ -241,7 +241,9 @@ class _BaseLikelihoodEvaluator(object):
         if fixed_args is None:
             return self.waveform_generator.variable_args
         else:
-            return set(self._waveform_generator.variable_args) - set(map(str,self._fixed_args.keys()))
+            variables = set(self._waveform_generator.variable_args)\
+                          - set(map(str,self._fixed_args.keys()))
+            return list(variables)
     @property
     def waveform_generator(self):
         """Returns the waveform generator that was set."""
@@ -519,8 +521,9 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
         if fixed_args is None:
             self._variable_args = waveform_generator.variable_args
         else:
-            self._variable_args = set(self._waveform_generator.variable_args) \
+            variables = set(self._waveform_generator.variable_args) \
                                 - set(map(str,self._fixed_args.keys()))
+            self._variable_args = list(variables)
         if norm is None:
             norm = 4*d.delta_f
         self._norm = norm
@@ -610,6 +613,7 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
                                       'when providing fixed arguments.')
                 else:
                     params.append(self._fixed_args[arg][id])
+        print id, params
         try:
             wfs = self._waveform_generator.generate(*params)
         except NoWaveformError:

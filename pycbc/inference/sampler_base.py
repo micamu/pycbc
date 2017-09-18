@@ -303,9 +303,11 @@ class BaseMCMCSampler(_BaseSampler):
         stats = numpy.array(self._sampler.blobs)
         if stats.size == 0:
             return None
-        arrays = dict([[field, stats[:, :, fi]]
-                       for fi, field in
-                      enumerate(self.likelihood_evaluator.metadata_fields)])
+        # we'll force arrays to float; this way, if there are `None`s in the
+        # blobs, they will be changed to `nan`s
+        arrays = {field: stats[..., fi].astype(float)
+                      for fi, field in
+                      enumerate(self.likelihood_evaluator.metadata_fields)}
         return FieldArray.from_kwargs(**arrays).transpose()
 
     # write and read functions

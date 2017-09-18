@@ -241,9 +241,15 @@ class _BaseLikelihoodEvaluator(object):
         if fixed_args is None:
             return self.waveform_generator.variable_args
         else:
-            variables = set(self._waveform_generator.variable_args)\
-                          - set(map(str,self._fixed_args.keys()))
-            return list(variables)
+            return [arg for arg in waveform_generator.variable_args
+                    if arg not in self.fixed_args]
+
+    @property
+    def fixed_args(self):
+        """Returns the fixed args.
+        """
+        return map(str,self._fixed_args.keys())
+
     @property
     def waveform_generator(self):
         """Returns the waveform generator that was set."""
@@ -518,12 +524,13 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
             (N-1)*2)
         self._kmin = kmin
         self._kmax = kmax
+        print 'generator variable args', waveform_generator.variable_args
         if fixed_args is None:
             self._variable_args = waveform_generator.variable_args
         else:
-            variables = set(self._waveform_generator.variable_args) \
-                                - set(map(str,self._fixed_args.keys()))
-            self._variable_args = list(variables)
+            self._variable_args = [arg for arg in waveform_generator.variable_args
+                                   if arg not in map(str,self._fixed_args.keys())]
+        print 'likelihood variable args', self._variable_args
         if norm is None:
             norm = 4*d.delta_f
         self._norm = norm
@@ -606,14 +613,14 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
             The value of the log likelihood ratio evaluated at the given point.
         """
         lr = 0.
-        for arg in  waveform_generator.variable_args:
-            if arg in self._fixed_args.keys():
+        for arg in self.waveform_generator.variable_args:
+            if arg in self.fixed_args:
                 if id is None:
                     raise ValueError('The walker\'s ID number is required '
                                       'when providing fixed arguments.')
                 else:
                     params.append(self._fixed_args[arg][id])
-        print id, params
+        print 'calculating likelihood', id, params
         try:
             wfs = self._waveform_generator.generate(*params)
         except NoWaveformError:

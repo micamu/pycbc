@@ -248,7 +248,10 @@ class _BaseLikelihoodEvaluator(object):
     def fixed_args(self):
         """Returns the fixed args.
         """
-        return map(str,self._fixed_args.keys())
+        if self._fixed_args is None:
+            return None
+        else:
+            return map(str,self._fixed_args.keys())
 
     @property
     def waveform_generator(self):
@@ -612,7 +615,7 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
         """
         lr = 0.
         for arg in self.waveform_generator.variable_args:
-            if arg in self.fixed_args:
+            if self.fixed_args is not None and arg in self.fixed_args:
                 if id is None:
                     raise ValueError('The walker\'s ID number is required '
                                       'when providing fixed arguments.')

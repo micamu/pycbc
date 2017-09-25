@@ -626,7 +626,7 @@ class FDomainDetFrameGenerator(object):
                         tc_ref_frame))
             for detname, det in self.detectors.items():
                 # apply detector response function
-                fp, fc = det.antenna_pattern(ra, dec, polarization, tc)
+                fp, fc = det.antenna_pattern(ra, dec, pol, tc)
                 thish = fp*hp + fc*hc
                 # apply window
                 if self.window is not None:
@@ -638,7 +638,12 @@ class FDomainDetFrameGenerator(object):
                                          "a window, even for frequency domain "
                                          "waveforms")
                     nyquist = 1./(2*dt)
-                    thish.resize(int(nyquist/thish.delta_f)+1)
+                    new_len = int(nyquist/thish.delta_f)+1
+                    if len(thish) < new_len:
+                        thish.resize(new_len)
+                    else:
+                        thish = thish[:new_len]
+                    #thish.resize(int(nyquist/thish.delta_f)+1)
                     # pin the window to the tc, excluding the tc offset
                     left_taper_time = self.window.left_taper_time
                     if left_taper_time is not None and left_taper_time != 'start':

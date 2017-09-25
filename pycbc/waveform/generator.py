@@ -426,6 +426,7 @@ class FDomainMultiModeRingdownGenerator(BaseGenerator):
         super(FDomainMultiModeRingdownGenerator, self).__init__(ringdown.get_fd_lm_allmodes,
             variable_args=variable_args, **frozen_params)
 
+
 class FDomainDetFrameGenerator(object):
     """Generates frequency-domain waveform in a specific frame.
 
@@ -629,6 +630,15 @@ class FDomainDetFrameGenerator(object):
                 thish = fp*hp + fc*hc
                 # apply window
                 if self.window is not None:
+                    # ensure we have zero-padded to Nyquist
+                    try:
+                        dt = self.current_params['delta_t']
+                    except KeyError:
+                        raise ValueError("must provide a delta_t if applying "
+                                         "a window, even for frequency domain "
+                                         "waveforms")
+                    nyquist = 1./(2*dt)
+                    thish.resize(int(nyquist/thish.delta_f)+1)
                     # pin the window to the tc, excluding the tc offset
                     left_taper_time = self.window.left_taper_time
                     if left_taper_time is not None and left_taper_time != 'start':

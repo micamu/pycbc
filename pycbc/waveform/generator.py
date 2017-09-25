@@ -645,28 +645,32 @@ class FDomainDetFrameGenerator(object):
                 except KeyError:
                     raise ValueError("unrecognized tc_ref_frame {}".format(
                         tc_ref_frame))
+            if self.window is not None:
+                df = self.current_params['delta_f'] 
+                try:
+                    dt = self.current_params['delta_t']
+                except KeyError:
+                    raise ValueError("must provide a delta_t if applying "
+                                     "a window, even for frequency domain "
+                                     "waveforms")
+                N = int(1./(df*dt))/2 + 1
+            elif self.highpass is not None:
+                N = min(len(thish), len(self.highpass))
+            else:
+                N = len(thish)
             for detname, det in self.detectors.items():
                 # apply detector response function
                 fp, fc = det.antenna_pattern(ra, dec, pol, tc)
                 thish = fp*hp + fc*hc
+                # ensure we have zero-padded to Nyquist
+                if len(thish) < N:
+                    thish.resize(N)
+                else:
+                    thish = thish[:N]
                 if self.highpass is not None:
-                    N = max(len(self.highpass), len(thish))
-                    thish[:N] *= self.highpass[:N]
+                    thish *= self.highpass
                 # apply window
                 if self.window is not None:
-                    # ensure we have zero-padded to Nyquist
-                    try:
-                        dt = self.current_params['delta_t']
-                    except KeyError:
-                        raise ValueError("must provide a delta_t if applying "
-                                         "a window, even for frequency domain "
-                                         "waveforms")
-                    nyquist = 1./(2*dt)
-                    new_len = int(nyquist/thish.delta_f)+1
-                    if len(thish) < new_len:
-                        thish.resize(new_len)
-                    else:
-                        thish = thish[:new_len]
                     #thish.resize(int(nyquist/thish.delta_f)+1)
                     # pin the window to the tc, excluding the tc offset
                     left_taper_time = self.window.left_taper_time

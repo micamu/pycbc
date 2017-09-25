@@ -34,7 +34,8 @@ from pycbc.types import TimeSeries
 from pycbc.waveform import parameters
 from pycbc.waveform import NoWaveformError
 from pycbc.waveform.utils import apply_fd_time_shift
-from pycbc.window import laltaper_timeseries as taper_timeseries
+from pycbc.window import laltaper_timeseries as taper_timeseries, \
+                         highpass_window
 from pycbc.detector import Detector
 from pycbc import pnutils
 import lal as _lal
@@ -520,7 +521,8 @@ class FDomainDetFrameGenerator(object):
     """
     location_args = set(['tc', 'ra', 'dec', 'polarization', 'tc_ref_frame',
                          'tc_offset'])
-    optional_args = {'tc_ref_frame': 'geocentric', 'tc_offset': 0.}
+    optional_args = {'tc_ref_frame': 'geocentric', 'tc_offset': 0.,
+                     'highpass': None}
 
     def __init__(self, rFrameGeneratorClass, epoch, detectors=None,
             window=None, variable_args=(), **frozen_params):
@@ -568,6 +570,25 @@ class FDomainDetFrameGenerator(object):
         for arg,val in self.optional_args.items():
             if arg not in self.current_params:
                 self.current_params[arg] = val
+        # generate the highpass window if specified
+        if self.current_params['highpass'] is not None:
+            # FIXME: come up with a better way to parse this
+            highpass = map(float, self.current_params['highpass'].split(','))
+            if len(highpass) == 1:
+                bandwidth = highpass[0]
+                trunc = None
+            elif len(highpass) == 2:
+                bandwidth, trunc = highpass
+            else:
+                raise ValueError("too many things provided for highpass")
+            N = int(1./
+                    (self.current_params['delta_t'] *
+                     self.current_params['delta_f']))
+            self.highpass = highpass_window(bandwidth,
+                self.current_params['f_lower'],
+                N/2+1, self.current_params['delta_f'], trunc_dur=trunc)
+        else:
+            self.highpass = None
 
     def set_epoch(self, epoch):
         """Sets the epoch; epoch should be a float or a LIGOTimeGPS."""
@@ -628,6 +649,9 @@ class FDomainDetFrameGenerator(object):
                 # apply detector response function
                 fp, fc = det.antenna_pattern(ra, dec, pol, tc)
                 thish = fp*hp + fc*hc
+                if self.highpass is not None:
+                    N = max(len(self.highpass), len(thish))
+                    thish[:N] *= self.highpass[:N]
                 # apply window
                 if self.window is not None:
                     # ensure we have zero-padded to Nyquist

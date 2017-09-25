@@ -625,10 +625,7 @@ class FDomainDetFrameGenerator(object):
                         tc_ref_frame))
             for detname, det in self.detectors.items():
                 # apply detector response function
-                fp, fc = det.antenna_pattern(self.current_params['ra'],
-                            self.current_params['dec'],
-                            self.current_params['polarization'],
-                            self.current_params['tc'])
+                fp, fc = det.antenna_pattern(ra, dec, polarization, tc)
                 thish = fp*hp + fc*hc
                 # apply window
                 if self.window is not None:

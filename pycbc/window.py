@@ -29,7 +29,8 @@ from __future__ import absolute_import
 import numpy
 from scipy import signal
 import lalsimulation as sim
-from pycbc.types import Array, TimeSeries, FrequencySeries, float32, float64
+from pycbc.types import Array, TimeSeries, FrequencySeries, float32, float64, \
+                        complex128
 from pycbc.opt import omp_libs, omp_flags
 from pycbc import WEAVE_FLAGS
 from weave import inline
@@ -157,6 +158,50 @@ def laltaper_timeseries(tsdata, tapermethod=None, return_lal=False):
         return TimeSeries(ts_lal.data.data[:], delta_t=ts_lal.deltaT,
                           epoch=ts_lal.epoch)
 
+
+# FIXME: Formalize this better
+def highpass_window(win_bandwidth, win_start, length, delta_f, trunc_dur=None,
+                           epoch=None, window_type=('kaiser', 8)):
+    """Apply FDomain window.
+
+    Parameters
+    ----------
+    win_bandwidth : float
+        Bandwidth of the roll-up window, in Hz.
+    win_start : float
+        Start frequency of the window.
+    length : int
+        Length of the entire frequency series to create.
+    delta_f : float
+        The delta_f to use for the window.
+    trunc_dur : float, optional
+        Truncate the window to the given amount of time in the time-domain.
+    epoch : float, optional
+        The epoch of the window.
+    window_type : str or tuple
+        The type of window to create; is passed directly to
+        ```scipy.signal.get_window``. Default is ``('kaiser', 8)``.
+
+    Returns
+    -------
+    FrequencySeries :
+        The window.
+    """
+    winlen = 2 * int(win_bandwidth / delta_f)
+    fdomain_window = signal.get_window(window_type, winlen)[:winlen/2]
+    kstart = int(win_start/delta_f)
+    fdwin = FrequencySeries(numpy.ones(length, dtype=float), delta_f=delta_f,
+                            epoch=epoch)
+    fdwin[kstart:kstart+len(fdomain_window)].data *= fdomain_window
+    fdwin[:kstart] = 0.
+    # truncate in the time domain
+    if trunc_dur is not None:
+        fdwin = fdwin.astype(complex128)
+        fdwin = fdwin.to_timeseries()
+        trunc_idx = int(trunc_dur/fdwin.delta_t)/2
+        fdwin[trunc_idx:-trunc_idx] = 0.
+        fdwin = fdwin.to_frequencyseries().real()
+    return fdwin
 
 #
 # =============================================================================

@@ -527,6 +527,7 @@ class FDomainDetFrameGenerator(object):
     def __init__(self, rFrameGeneratorClass, epoch, detectors=None,
             window=None, variable_args=(), **frozen_params):
         # initialize frozen & current parameters:
+        highpass = frozen_params.pop('highpass', None)
         self.current_params = frozen_params.copy()
         self._static_args = frozen_params.copy()
         # we'll separate out frozen location parameters from the frozen
@@ -571,9 +572,9 @@ class FDomainDetFrameGenerator(object):
             if arg not in self.current_params:
                 self.current_params[arg] = val
         # generate the highpass window if specified
-        if self.current_params['highpass'] is not None:
+        if highpass is not None:
             # FIXME: come up with a better way to parse this
-            highpass = map(float, self.current_params['highpass'].split(','))
+            highpass = map(float, highpass.split(','))
             if len(highpass) == 1:
                 bandwidth = highpass[0]
                 trunc = None
@@ -655,9 +656,9 @@ class FDomainDetFrameGenerator(object):
                                      "waveforms")
                 N = int(1./(df*dt))/2 + 1
             elif self.highpass is not None:
-                N = min(len(thish), len(self.highpass))
+                N = min(len(hp), len(self.highpass))
             else:
-                N = len(thish)
+                N = len(hp)
             for detname, det in self.detectors.items():
                 # apply detector response function
                 fp, fc = det.antenna_pattern(ra, dec, pol, tc)

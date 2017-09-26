@@ -88,6 +88,7 @@ parser.add_argument("--checkpoint-interval", type=int, default=None,
 parser.add_argument("--checkpoint-fast", action="store_true",
                     help="Do not calculate derived data (eg. ACL or evidence) "
                          "after each checkpoint. Calculate them at the end.")
+parser.add_argument("--samples-file", type=str)
 
 # verbose option
 parser.add_argument("--verbose", action="store_true", default=False,
@@ -205,6 +206,16 @@ with ctx:
         sampler.set_p0(prior_dists, initial_dists)
     else:
         sampler.set_p0(prior_dists)
+
+#########################
+    if opts.samples_file:
+        p0 = numpy.ones((sampler.nwalkers, len(sampler.variable_args)))
+        with InferenceFile(opts.samples_file, "r") as fp:
+            samples = fp.read_samples(sampler.variable_args, iteration=-1)
+        for i, param in enumerate(sampler.variable_args):
+            p0[:, i] = samples[param]
+        sampler._p0 = p0
+#########################
 
     # setup checkpointing
     if opts.checkpoint_interval:

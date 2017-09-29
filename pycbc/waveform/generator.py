@@ -698,7 +698,12 @@ class FDomainDetFrameGenerator(object):
                     self.window.right_taper_time = right_taper_time
                 # apply the time shift
                 thish._epoch = self._epoch
-                if tc_ref_frame == detname:
+                if 'tof' in self.current_params:
+                    if detname == 'H1':
+                        det_tc = tc + (self.current_params['tof']/2.)
+                    elif detname == 'L1':
+                        det_tc = tc - (self.current_params['tof']/2.)
+                elif tc_ref_frame == detname:
                     det_tc = tc
                 elif tc_ref_frame == 'geocentric':
                     det_tc = tc + det.time_delay_from_earth_center(ra, dec, tc)

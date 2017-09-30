@@ -520,7 +520,7 @@ class FDomainDetFrameGenerator(object):
 
     """
     location_args = set(['tc', 'ra', 'dec', 'polarization', 'tc_ref_frame',
-                         'tc_offset'])
+                         'tc_offset', 'tof'])
     optional_args = {'tc_ref_frame': 'geocentric', 'tc_offset': 0.,
                      'highpass': None}
 

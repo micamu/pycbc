@@ -670,18 +670,24 @@ class FDomainDetFrameGenerator(object):
                     thish = thish[:N]
                 if self.highpass is not None:
                     thish *= self.highpass
+                if 'tof' in self.current_params:
+                    if detname == 'H1':
+                        tof = self.current_params['tof']/2.
+                    elif detname == 'L1':
+                        tof = -self.current_params['tof']/2.
+                    else:
+                        tof = 0.
                 # apply window
                 if self.window is not None:
-                    #thish.resize(int(nyquist/thish.delta_f)+1)
                     # pin the window to the tc, excluding the tc offset
                     left_taper_time = self.window.left_taper_time
                     if left_taper_time is not None and left_taper_time != 'start':
                         self.window.left_taper_time = left_taper_time - \
-                            tc_offset
+                            tc_offset + tof
                     right_taper_time = self.window.right_taper_time
                     if right_taper_time is not None:
                         self.window.right_taper_time = right_taper_time - \
-                            tc_offset
+                            tc_offset + tof
                     try:
                         thish = self.window(thish, break_time=break_time,
                                             ifo=detname,
@@ -699,10 +705,7 @@ class FDomainDetFrameGenerator(object):
                 # apply the time shift
                 thish._epoch = self._epoch
                 if 'tof' in self.current_params:
-                    if detname == 'H1':
-                        det_tc = tc + (self.current_params['tof']/2.)
-                    elif detname == 'L1':
-                        det_tc = tc - (self.current_params['tof']/2.)
+                    det_tc = tc + tof
                 elif tc_ref_frame == detname:
                     det_tc = tc
                 elif tc_ref_frame == 'geocentric':

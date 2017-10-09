@@ -554,6 +554,8 @@ class FDomainDetFrameGenerator(object):
                 for arg in self.location_args-set(self.optional_args.keys())
                 if not (arg in self.current_params or
                         arg in self.variable_args)]
+            if 'tof' in missing_args:
+                missing_args.remove('tof')
             if any(missing_args):
                 raise ValueError("detectors provided, but missing location "
                     "parameters %s. " %(', '.join(missing_args)) +

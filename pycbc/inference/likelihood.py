@@ -513,7 +513,7 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
     """
     name = 'gaussian'
 
-    def __init__(self, waveform_generator, data, f_lower, psds=None, walker_whitened=False,
+    def __init__(self, waveform_generator, data, f_lower, psds=None, data_per_walker=False,
             f_upper=None, norm=None, prior=None, fixed_args=None, return_meta=True):
         # set up the boiler-plate attributes; note: we'll compute the
         # log evidence later
@@ -541,7 +541,7 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
         if norm is None:
             norm = 4*self._delta_f
         self._norm = norm
-        self._walker_whitened = walker_whitened
+        self._data_per_walker = data_per_walker
         # we'll store the weight to apply to the inner product
         if psds is None:
             self._weight = None
@@ -552,14 +552,14 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
                             for det in data}
             numpy.seterr(**numpysettings)
             # whiten the data
-            if self._walker_whitened is False:
+            if not self._data_per_walker:
                 for det in self._data:
                     self._data[det][kmin:kmax] *= self._weight[det][kmin:kmax]
             else:
                 self._windowed_data = dict([[det, {}] for det in self._data])
         self._walker_weight = self._weight
         # compute the log likelihood function of the noise and save it
-        if self._walker_whitened is False:
+        if not self._data_per_walker:
             lognl = -0.5*sum([self._norm * d[kmin:kmax].inner(d[kmin:kmax]).real
                               for d in self._data.values()])
             self.set_lognl(lognl)
@@ -649,7 +649,7 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
             # whiten the waveform
             if self._weight is not None:
                 h[self._kmin:kmax] *= self._weight[det][self._kmin:kmax]
-            if self._walker_whitened is True:
+            if self._data_per_walker:
                 try:
                     d = self._windowed_data[det][id]
                 except KeyError:

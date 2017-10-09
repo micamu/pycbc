@@ -125,6 +125,12 @@ class FrequencySeries(Array):
                                epoch=self._epoch,
                                copy=False)
 
+    @property
+    def start_time(self):
+        """Return the start time of this vector
+        """
+        return self.epoch
+
     def __eq__(self,other):
         """
         This is the Python special method invoked whenever the '=='

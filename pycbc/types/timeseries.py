@@ -154,6 +154,12 @@ class TimeSeries(Array):
         """
         return self._epoch
 
+    @property
+    def epoch(self):
+        """Return time series start time as a LIGOTimeGPS.
+        """
+        return self._epoch
+
     @start_time.setter
     def start_time(self, time):
         """ Set the start time

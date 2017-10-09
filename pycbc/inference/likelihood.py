@@ -29,7 +29,7 @@ for parameter estimation.
 from pycbc import filter
 from pycbc.window import UNWHITENED, WHITENED, OVERWHITENED
 from pycbc.waveform import NoWaveformError
-from pycbc.types import Array
+from pycbc.types import Array, FrequencySeries
 import numpy
 
 # Used to manage a likelihood instance across multiple cores or MPI
@@ -562,7 +562,9 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
         if not self._data_per_walker:
             lognl = -0.5*sum([self._norm * d[kmin:kmax].inner(d[kmin:kmax]).real
                               for d in self._data.values()])
-            self.set_lognl(lognl)
+        else:
+            lognl = numpy.nan
+        self.set_lognl(lognl)
         # if the waveform generator returns whitened waveforms, adjust
         # the weight
         # first check that the psds used are the same
@@ -660,7 +662,7 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
                         dt = -dt
                     det_tc = tc + dt
                     d = self._data[det]
-                    d[:det_tc*d.sample_rate] = 0
+                    d[:int(det_tc*d.sample_rate)] = 0
                     d = d.to_frequencyseries(delta_f = self._delta_f)
                     if self._walker_weight is not None:
                         d[self._kmin:self._kmax] *= self._walker_weight[det][self._kmin:self._kmax] 

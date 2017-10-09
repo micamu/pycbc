@@ -662,7 +662,8 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
                         dt = -dt
                     det_tc = tc + dt
                     d = self._data[det]
-                    d[:int(det_tc*d.sample_rate)] = 0
+                    start = int((det_tc - d.epoch) * d.sample_rate)
+                    d[:start] = 0
                     d = d.to_frequencyseries(delta_f = self._delta_f)
                     if self._walker_weight is not None:
                         d[self._kmin:self._kmax] *= self._walker_weight[det][self._kmin:self._kmax] 

@@ -51,6 +51,9 @@ parser.add_argument("--psd-start-time", type=float, default=None,
 parser.add_argument("--psd-end-time", type=float, default=None,
                     help="End time to use for PSD estimation if different "
                          "from analysis.")
+parser.add_argument("--walker-whitened", action="store_true", default=False,
+                    help="Zero out data depending on walker's sky location "
+                         "before whitening.")
 
 # add inference options
 parser.add_argument("--likelihood-evaluator", required=True,
@@ -175,8 +178,9 @@ with ctx:
                        **static_args)
 
     # construct class that will return the natural logarithm of likelihood
+    pass_data = strain_dict if opts.walker_whitened else stilde_dict
     likelihood = inference.likelihood_evaluators[opts.likelihood_evaluator](
-                        waveform_generator, stilde_dict,
+                        waveform_generator, pass_data,
                         low_frequency_cutoff_dict.values()[0],
                         psds=psd_dict, prior=prior, fixed_args=fixed_args)
 

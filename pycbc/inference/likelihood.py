@@ -520,20 +520,28 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
         super(GaussianLikelihood, self).__init__(waveform_generator, data,
             prior=prior, return_meta=return_meta, fixed_args=fixed_args)
         # we'll use the first data set for setting values
-        d = data.values()[0]
-        N = len(d)
-        # figure out the kmin, kmax to use
-        kmin, kmax = filter.get_cutoff_indices(f_lower, f_upper, d.delta_f,
-            (N-1)*2)
-        self._kmin = kmin
-        self._kmax = kmax
         if fixed_args is None:
             self._variable_args = waveform_generator.variable_args
         else:
             self._variable_args = [arg for arg in waveform_generator.variable_args
                                    if arg not in map(str,self._fixed_args.keys())]
+        d = data.values()[0]
+        N = len(d)
+        if isinstance(d, FrequencySeries):
+            self._delta_f = d.delta_f
+            tlen = (N-1)*2
+        else:
+            self._delta_f = 1. / (N * d.delta_t)
+            tlen = N
+            sample_rate = d.sample_rate
+            self._data = dict([[ifo, [self._data[det] for idx in range(len(self._fixed_args['tof']] for ifo in data])
+        # figure out the kmin, kmax to use
+        kmin, kmax = filter.get_cutoff_indices(f_lower, f_upper, self._delta_f,
+            tlen)
+        self._kmin = kmin
+        self._kmax = kmax
         if norm is None:
-            norm = 4*d.delta_f
+            norm = 4*self._delta_f
         self._norm = norm
         # we'll store the weight to apply to the inner product
         if psds is None:
@@ -546,7 +554,20 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
             numpy.seterr(**numpysettings)
             # whiten the data
             for det in self._data:
-                self._data[det][kmin:kmax] *= self._weight[det][kmin:kmax]
+                if isinstance(d, FrequencySeries):
+                    self._data[det][kmin:kmax] *= self._weight[det][kmin:kmax]
+                else:
+                    tc = waveform_generator.current_params['tc'] + waveform_generator.current_params['tc_offset']
+                    tof = self._fixed_args['tof']
+                    for idx in range(len(tof)):
+                        if det == 'H1':
+                           det_tc = tc + tof[idx]/2.
+                        elif det == 'L1':
+                            det_tc = tc - tof[idx]/2.
+                        self._data[det][idx][:det_tc*sample_rate] = 0
+                        self._data[det][idx].to_frequencyseries(delta_f = delta_f)
+                        self._data[det][idx][kmin:kmax] *= self._weight[det][kmin:kmax]
+                    d = self._data.values()[0][0]
         # compute the log likelihood function of the noise and save it
         lognl = -0.5*sum([self._norm * d[kmin:kmax].inner(d[kmin:kmax]).real
                           for d in self._data.values()])
@@ -637,6 +658,8 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
             # whiten the waveform
             if self._weight is not None:
                 h[self._kmin:kmax] *= self._weight[det][self._kmin:kmax]
+            if len(d) == len(self._fixed_args['tof']):
+                d = d[id]
             # <h, d>
             hd = self._norm * h[self._kmin:kmax].inner(d[self._kmin:kmax]).real
             # <h, h>

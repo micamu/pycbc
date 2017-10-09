@@ -181,8 +181,8 @@ with ctx:
     pass_data = strain_dict if opts.walker_whitened else stilde_dict
     likelihood = inference.likelihood_evaluators[opts.likelihood_evaluator](
                         waveform_generator, pass_data,
-                        walker_whitened=opts.walker_whitened,
                         low_frequency_cutoff_dict.values()[0],
+                        walker_whitened=opts.walker_whitened,
                         psds=psd_dict, prior=prior, fixed_args=fixed_args)
 
     # create sampler that will run

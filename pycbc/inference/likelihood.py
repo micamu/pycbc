@@ -556,8 +556,8 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
                 for det in self._data:
                     self._data[det][kmin:kmax] *= self._weight[det][kmin:kmax]
             else:
-                self._walker_weight = self._weight
                 self._windowed_data = dict([[det, {}] for det in self._data])
+        self._walker_weight = self._weight
         # compute the log likelihood function of the noise and save it
         if self._walker_whitened is False:
             lognl = -0.5*sum([self._norm * d[kmin:kmax].inner(d[kmin:kmax]).real
@@ -663,7 +663,7 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
                     d[:det_tc*d.sample_rate] = 0
                     d = d.to_frequencyseries(delta_f = self._delta_f)
                     if self._walker_weight is not None:
-                        d[kmin:kmax] *= self._walker_weight[det][kmin:kmax] 
+                        d[self._kmin:self._kmax] *= self._walker_weight[det][self._kmin:self._kmax] 
                     self._windowed_data[det][id] = d
             # <h, d>
             hd = self._norm * h[self._kmin:kmax].inner(d[self._kmin:kmax]).real

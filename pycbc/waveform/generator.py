@@ -402,6 +402,28 @@ class FDomainRingdownGenerator(BaseGenerator):
         super(FDomainRingdownGenerator, self).__init__(ringdown.get_fd_qnm,
             variable_args=variable_args, **frozen_params)
 
+class TDomainRingdownGenerator(BaseGenerator):
+    """Uses ringdown.get_td_qnm as a generator function to create time-
+    domain ringdown waveforms in the radiation frame; i.e., with no detector response
+    function applied. For more details, see BaseGenerator.
+
+    Examples
+    --------
+    Initialize a generator:
+
+    >>> generator = waveform.TDomainRingdownGenerator(variable_args=['tau', 'f_0'], delta_t=1./2048)
+
+    Create a ringdown with the variable arguments (in this case, tau, f_0):
+
+    >>> generator.generate(5, 100)
+        (<pycbc.types.frequencyseries.FrequencySeries at 0x1110c1450>,
+         <pycbc.types.frequencyseries.FrequencySeries at 0x1110c1510>)
+
+    """
+    def __init__(self, variable_args=(), **frozen_params):
+        super(TDomainRingdownGenerator, self).__init__(ringdown.get_td_qnm,
+            variable_args=variable_args, **frozen_params)
+
 class FDomainMultiModeRingdownGenerator(BaseGenerator):
     """Uses ringdown.get_fd_lm_allmodes as a generator function to create 
     frequency-domain ringdown waveforms with higher modes in the radiation 
@@ -754,6 +776,7 @@ def select_waveform_generator(approximant):
     >>> waveform.td_approximants()
     >>> from pycbc.waveform import ringdown
     >>> ringdown.ringdown_fd_approximants.keys()
+    >>> ringdown.ringdown_td_approximants.keys()
 
     Get generator object:
     >>> waveform.select_waveform_generator(waveform.fd_approximants()[0])
@@ -774,8 +797,11 @@ def select_waveform_generator(approximant):
         elif approximant == 'FdQNMmultiModes':
             return FDomainMultiModeRingdownGenerator
 
-    # otherwise waveform approximant is not supported
+    # check if time-domain ringdown waveform (single mode)
     elif approximant in ringdown.ringdown_td_approximants:
-        raise ValueError("Time domain ringdowns not supported")
+        if approximant == 'TdQNM':
+            return TDomainRingdownGenerator
+        else:
+            raise ValueError("Time domain multi-mode ringdowns not supported")
     else:
         raise ValueError("%s is not a valid approximant." % approximant)

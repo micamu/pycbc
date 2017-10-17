@@ -663,7 +663,17 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
                     det_tc = tc + dt
                     d = self._data[det]
                     start = int((det_tc - d.epoch) * d.sample_rate)
-                    d[:start] = 0
+                    extra_t = det_tc % d.sample_rate
+                    if extra_t != 0:
+                        d = d.to_frequencyseries()
+                        d = waveform.apply_fseries_time_shift(d, extra_t)
+                        d = d.to_timeseries()
+                        d[:start] = 0
+                        d = d.to_frequencyseries()
+                        d = waveform.apply_fseries_time_shift(d, -extra_t)
+                        d = d.to_timeseries()
+                    else:
+                        d[:start] = 0
                     d = d.to_frequencyseries(delta_f = self._delta_f)
                     if self._walker_weight is not None:
                         d[self._kmin:self._kmax] *= self._walker_weight[det][self._kmin:self._kmax] 

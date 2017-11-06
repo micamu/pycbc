@@ -487,6 +487,30 @@ def add_inference_results_option_group(parser):
 
     return results_reading_group
 
+def parse_parameters_opt(parameters):
+    """Parses the --parameters opt in the results_reading_group.
+    Parameters
+    ----------
+    parameters : list of str or None
+        The parameters to parse.
+    Returns
+    -------
+    parameters : list of str
+        The parameters.
+    labels : dict
+        A dictionary mapping parameters for which labels were provide to those
+        labels.
+    """
+    if parameters is None:
+        return None, {}
+    # load the labels
+    labels = {}
+    for ii,p in enumerate(parameters):
+        if len(p.split(':')) == 2:
+            p, label = p.split(':')
+            parameters[ii] = p
+            labels[p] = label
+    return parameters, labels
 
 def results_from_cli(opts, load_samples=True, walkers=None):
     """
@@ -585,7 +609,6 @@ def results_from_cli(opts, load_samples=True, walkers=None):
             samples_all = samples
 
     return fp_all, parameters_all, labels_all, samples_all
->>>>>>> a3edbe7... Allow multiple posteriors overlaid on each other (#1892)
 
 
 def get_zvalues(fp, arg, likelihood_stats):

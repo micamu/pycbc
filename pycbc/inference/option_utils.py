@@ -513,7 +513,7 @@ def parse_parameters_opt(parameters):
             labels[p] = label
     return parameters, labels
 
-def results_from_cli(opts, load_samples=True, walkers=None):
+def results_from_cli(opts, load_samples=True, walkers=None, **kwargs):
     """
     Loads an inference result file along with any labels associated with it
     from the command line options.

@@ -214,7 +214,7 @@ def create_density_plot(xparam, yparam, samples, plot_density=True,
     """
     if percentiles is None:
         percentiles = numpy.array([50., 90.])
-    percentiles = 100. - percentiles
+    percentiles = 100. - numpy.array(percentiles)
     percentiles.sort()
 
     if ax is None and fig is None:

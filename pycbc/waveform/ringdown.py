@@ -495,7 +495,7 @@ def get_td_lm(template=None, **kwargs):
 
     f_0, tau = get_lm_f0tau(final_mass, final_spin, l, m, nmodes)
     for n in range(nmodes):
-        hplus, hcross = get_td_qnm(template=None, taper=taper, f_0=f_0[n],
+        hplus, hcross = get_td_qnm(template=None, f_0=f_0[n],
                             tau=tau[n], phi=phis['%d%d%d' %(l,m,n)],
                             amp=amps['%d%d%d' %(l,m,n)],
                             inclination=inc, l=l, m=m,
@@ -652,15 +652,15 @@ def get_td_lm_allmodes(template=None, **kwargs):
     outcross = TimeSeries(zeros(kmax, dtype=float64), delta_t=delta_t)
     for lmn in lmns:
         l, m, nmodes = int(lmn[0]), int(lmn[1]), int(lmn[2])
-        hplus, hcross = get_td_lm(taper=taper, l=l, m=m, nmodes=nmodes,
+        hplus, hcross = get_td_lm(l=l, m=m, nmodes=nmodes,
                              inclination=inc, delta_t=delta_t, t_final=t_final,
                              **input_params)
-        if taper is None:
-            outplus.data += hplus.data
-            outcross.data += hcross.data
-        else:
-            outplus = taper_shift(hplus, outplus)
-            outcross = taper_shift(hcross, outcross)
+        #if taper is None:
+        outplus.data += hplus.data
+        outcross.data += hcross.data
+#        else:
+#            outplus = taper_shift(hplus, outplus)
+#            outcross = taper_shift(hcross, outcross)
 
     return outplus, outcross
 

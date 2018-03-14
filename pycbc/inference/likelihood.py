@@ -28,7 +28,7 @@ for parameter estimation.
 
 from pycbc import filter
 from pycbc.window import UNWHITENED, WHITENED, OVERWHITENED
-from pycbc.waveform import NoWaveformError
+from pycbc.waveform import apply_fseries_time_shift, NoWaveformError
 from pycbc.types import Array, FrequencySeries
 import numpy
 
@@ -277,12 +277,12 @@ class _BaseLikelihoodEvaluator(object):
         """
         return self._prior(params)
 
-    def loglikelihood(self, params, id=None):
+    def loglikelihood(self, params, walker_id=None):
         """Returns the natural log of the likelihood function.
         """
         raise NotImplementedError("Likelihood function not set.")
 
-    def loglr(self, params, id=None):
+    def loglr(self, params, walker_id=None):
         """Returns the natural log of the likelihood ratio.
         """
         raise NotImplementedError("Likelihood ratio function not set.")
@@ -318,31 +318,31 @@ class _BaseLikelihoodEvaluator(object):
         else:
             return val
 
-    def logplr(self, params, id=None):
+    def logplr(self, params, walker_id=None):
         """Returns the log of the prior-weighted likelihood ratio.
         """
         # if the prior returns -inf, just return
         logp = self._prior(params)
         if logp == -numpy.inf:
             return self._formatreturn(logp, prior=logp)
-        llr = self.loglr(params, id)
+        llr = self.loglr(params, walker_id)
         return self._formatreturn(llr + logp, prior=logp, loglr=llr)
 
-    def logposterior(self, params, id=None):
+    def logposterior(self, params, walker_id=None):
         """Returns the log of the posterior of the given params.
         """
         # if the prior returns -inf, just return
         logp = self._prior(params)
         if logp == -numpy.inf:
             return self._formatreturn(logp, prior=logp)
-        ll = self.loglikelihood(params, id)
+        ll = self.loglikelihood(params, walker_id)
         return self._formatreturn(ll + logp, prior=logp, loglr=ll-self._lognl)
 
-    def snr(self, params, id=None):
+    def snr(self, params, walker_id=None):
         """Returns the "SNR" of the given params. This will return
         imaginary values if the log likelihood ratio is < 0.
         """
-        return snr_from_loglr(self.loglr(params, id))
+        return snr_from_loglr(self.loglr(params, walker_id))
 
     _callfunc = logposterior
 
@@ -358,10 +358,10 @@ class _BaseLikelihoodEvaluator(object):
         """
         cls._callfunc = getattr(cls, funcname)
 
-    def __call__(self, params, id=None):
+    def __call__(self, params, walker_id=None):
         # apply any boundary conditions to the parameters before
         # generating/evaluating
-        return self._callfunc(self._prior.apply_boundary_conditions(params), id)
+        return self._callfunc(self._prior.apply_boundary_conditions(params), walker_id)
 
 
 
@@ -608,7 +608,7 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
     def lognl(self):
         return self._lognl
 
-    def loglr(self, params, id=None):
+    def loglr(self, params, walker_id=None):
         r"""Computes the log likelihood ratio,
         
         .. math::
@@ -630,11 +630,11 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
         lr = 0.
         for arg in self.waveform_generator.variable_args:
             if self.fixed_args is not None and arg in self.fixed_args:
-                if id is None:
+                if walker_id is None:
                     raise ValueError('The walker\'s ID number is required '
                                       'when providing fixed arguments.')
                 else:
-                    params.append(self._fixed_args[arg][id])
+                    params.append(self._fixed_args[arg][walker_id])
         try:
             wfs = self._waveform_generator.generate(*params)
         except NoWaveformError:
@@ -653,27 +653,26 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
                 h[self._kmin:kmax] *= self._weight[det][self._kmin:kmax]
             if self._data_per_walker:
                 try:
-                    d = self._windowed_data[det][id]
+                    d = self._windowed_data[det][walker_id]
                 except KeyError:
                     tc = self._waveform_generator.current_params['tc'] + \
                          self._waveform_generator.current_params['tc_offset']
-                    dt = self._fixed_args['tof'][id] / 2.
+                    dt = self._fixed_args['tof'][walker_id] / 2.
                     if det == 'L1':
                         dt = -dt
                     det_tc = tc + dt
-                    d = self._data[det]
                     start = int((det_tc - d.epoch) * d.sample_rate)
-                    extra_t = (det_tc - d.epoch) % d.sample_rate
+                    extra_t = (det_tc - d.sample_times[start])
                     if extra_t != 0:
                         d = d.to_frequencyseries(delta_f = self._delta_f)
-                        d = waveform.apply_fseries_time_shift(d, -extra_t, copy=False).to_timeseries()
+                        d = apply_fseries_time_shift(d, -extra_t, copy=False).to_timeseries()
                     d[:start] = 0
                     d = d.to_frequencyseries(delta_f = self._delta_f)
                     if extra_t != 0:
-                        d = waveform.apply_fseries_time_shift(d, extra_t, copy=False)
+                        d = apply_fseries_time_shift(d, extra_t, copy=False)
                     if self._walker_weight is not None:
                         d[self._kmin:self._kmax] *= self._walker_weight[det][self._kmin:self._kmax] 
-                    self._windowed_data[det][id] = d
+                    self._windowed_data[det][walker_id] = d
             # <h, d>
             hd = self._norm * h[self._kmin:kmax].inner(d[self._kmin:kmax]).real
             # <h, h>
@@ -682,7 +681,7 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
             lr += hd - 0.5*hh
         return lr
 
-    def loglikelihood(self, params, id=None):
+    def loglikelihood(self, params, walker_id=None):
         r"""Computes the log likelihood of the paramaters,
         
         .. math::
@@ -701,10 +700,10 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
         """
         # since the loglr has fewer terms, we'll call that, then just add
         # back the noise term that canceled in the log likelihood ratio
-        return self.loglr(params, id) + self._lognl
+        return self.loglr(params, walker_id) + self._lognl
 
 
-    def logposterior(self, params, id=None):
+    def logposterior(self, params, walker_id=None):
         """Computes the log-posterior probability at the given point in
         parameter space.
 
@@ -724,7 +723,7 @@ class GaussianLikelihood(_BaseLikelihoodEvaluator):
         """
         # since the logplr has fewer terms, we'll call that, then just add
         # back the noise term that canceled in the log likelihood ratio
-        logplr = self.logplr(params, id)
+        logplr = self.logplr(params, walker_id)
         if self.return_meta:
             logplr, (pr, lr) = logplr
         else:
@@ -860,19 +859,19 @@ class HierarchicalLikelihood(_BaseLikelihoodEvaluator):
         return {ename: [pdict[arg] for arg in getargs]
                 for ename,getargs in self._vargs_by_event.items()}
 
-    def loglikelihood(self, params, id=None):
+    def loglikelihood(self, params, walker_id=None):
         """Returns the sum of the natural log of the likelihood function from
         all events.
         """
         params_by_event = self.params_by_event(params)
-        return sum([le.loglikelihood(params_by_event[ename], id)
+        return sum([le.loglikelihood(params_by_event[ename], walker_id)
                     for ename,le in self._likelihood_evaluators.items()])
 
-    def loglr(self, params, id=None):
+    def loglr(self, params, walker_id=None):
         """Returns the natural log of the likelihood ratio.
         """
         params_by_event = self.params_by_event(params)
-        return sum([le.loglr(params_by_event[ename], id)
+        return sum([le.loglr(params_by_event[ename], walker_id)
                    for ename,le in self._likelihood_evaluators.items()])
 
 likelihood_evaluators = {GaussianLikelihood.name: GaussianLikelihood}

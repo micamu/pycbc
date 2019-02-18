@@ -34,7 +34,13 @@ class PosteriorFile(BaseInferenceFile):
 
     def read_raw_samples(self, fields, **kwargs):
         samples = self[self.samples_group]
-        return {field: samples[field][:] for field in samples}
+        field_samples = {}
+        for field in fields:
+            if field in samples.keys():
+                field_samples[field] = samples[field][:]
+            elif field in samples.attrs.keys():
+                field_samples[field] = samples.attrs[field]
+        return field_samples
 
     def write_posterior(self, filename, **kwargs):
         """Write me."""

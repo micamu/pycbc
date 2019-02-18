@@ -135,7 +135,8 @@ class BaseInferenceFile(h5py.File):
         if array_class is None:
             array_class = FieldArray
         # get the names of fields needed for the given parameters
-        possible_fields = self[self.samples_group].keys()
+        possible_fields = self[self.samples_group].keys() + \
+                          self[self.samples_group].attrs.keys()
         return array_class.parse_parameters(parameters, possible_fields)
 
     def read_samples(self, parameters, array_class=None, **kwargs):
@@ -175,7 +176,8 @@ class BaseInferenceFile(h5py.File):
         if array_class is None:
             array_class = FieldArray
         # get the names of fields needed for the given parameters
-        possible_fields = self[self.samples_group].keys()
+        possible_fields = self[self.samples_group].keys() + \
+                          self[self.samples_group].attrs.keys()
         loadfields = array_class.parse_parameters(parameters, possible_fields)
         samples = self.read_raw_samples(loadfields, **kwargs)
         # convert to FieldArray

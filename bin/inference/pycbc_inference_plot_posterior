@@ -80,13 +80,17 @@ if opts.z_arg is not None:
     zlbl = opts.z_arg_labels[opts.z_arg]
     zvals = []
     for fp in fps:
-        zsamples = fp.samples_from_cli(opts, parameters=opts.z_arg)
-        zvals.append(zsamples[opts.z_arg])
+        if opts.z_arg in fp[fp.samples_group].keys():
+            zsamples = fp.samples_from_cli(opts, parameters=opts.z_arg)
+            zvals.append(zsamples[opts.z_arg])
+        else:
+            zsamples, zlbl = option_utils.zvalues_from_cli(fp, opts)
+            zvals.append(zsamples)
 else:
     zvals = None
     zlbl = None
 
-# closet the files, we don't need them anymore
+# close the files, we don't need them anymore
 for fp in fps:
     fp.close()
 

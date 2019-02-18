@@ -26,6 +26,7 @@ from pycbc.strain import from_cli_multi_ifos as strain_from_cli_multi_ifos
 from pycbc.strain import (gates_from_cli, psd_gates_from_cli,
                           apply_gates_to_td, apply_gates_to_fd)
 from pycbc import waveform
+from pycbc import conversions
 
 
 # -----------------------------------------------------------------------------
@@ -424,7 +425,9 @@ def add_scatter_option_group(parser):
 
     scatter_group.add_argument(
         '--z-arg', type=str, default=None, action=ParseParametersArg,
-        help='What to color the scatter points by. Syntax is the same as the '
+        help='What to color the scatter points by. It can be either one of '
+             'parameters in the input file or one of logprior, snr, loglr '
+             '(for the log likelihood ratio). Syntax is the same as the '
              'parameters option.')
     scatter_group.add_argument(
         "--vmin", type=float, help="Minimum value for the colorbar.")
@@ -435,6 +438,43 @@ def add_scatter_option_group(parser):
         help="Specify the colormap to use for points. Default is plasma.")
 
     return scatter_group
+
+
+def zvalues_from_cli(fp, opts):
+    """Get the likelihood related parameters for the z-values
+    in the scatter posterior plots.
+
+    Parameters
+    ----------
+    fp : InferenceFile
+        An open inference file to read likelihood values from.
+    opts : ArgumentParser
+        The parsed arguments from the command line.
+
+    Returns
+    -------
+    zvals : numpy.array
+        An array of the desired likelihood values to plot.
+    zlbl : str
+        The label to use for the values on a plot.
+    """
+    arg = opts.z_arg
+    samples = fp[fp.samples_group]
+    loglr = samples['loglikelihood'][:] - samples.attrs['lognl']
+
+    if arg == 'loglr':
+        zvals = loglr
+        zlbl = r'$\log\mathcal{L}(\vec{\vartheta})$'
+    elif arg == 'snr':
+        zvals = conversions.snr_from_loglr(loglr)
+        zlbl = r'$\rho(\vec{\vartheta})$'
+    elif arg == 'logprior':
+        zvals = samples['logprior'][:]
+        zlbl = r'$\log p(\vec{\vartheta})$'
+    else:
+        raise ValueError("Unrecognized arg {}".format(arg))
+
+    return zvals, zlbl
 
 
 def add_density_option_group(parser):

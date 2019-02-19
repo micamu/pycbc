@@ -459,8 +459,8 @@ def zvalues_from_cli(fp, opts):
         The label to use for the values on a plot.
     """
     arg = opts.z_arg
-    samples = fp[fp.samples_group]
-    loglr = samples['loglikelihood'][:] - samples.attrs['lognl']
+    loglikelihood = fp.read_samples('loglikelihood').to_array()
+    loglr = loglikelihood - fp[fp.samples_group].attrs['lognl']
 
     if arg == 'loglr':
         zvals = loglr
@@ -469,7 +469,7 @@ def zvalues_from_cli(fp, opts):
         zvals = conversions.snr_from_loglr(loglr)
         zlbl = r'$\rho(\vec{\vartheta})$'
     elif arg == 'logprior':
-        zvals = samples['logprior'][:]
+        zvals = fp.read_samples['logprior'].to_array()
         zlbl = r'$\log p(\vec{\vartheta})$'
     else:
         raise ValueError("Unrecognized arg {}".format(arg))

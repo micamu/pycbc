@@ -195,3 +195,30 @@ def read_constraints_from_config(cp, transforms=None,
                                                   **kwargs))
 
     return cons
+
+def read_virtual_fields_from_config(cp, section='virtual_fields'):
+    """Loads virtual fields parameters from a configuration file.
+
+    Parameters
+    ----------
+    cp : WorkflowConfigParser
+        An open config parser to read from.
+    section : str, optional
+        The section to get the virtual fields from. Default is 'virtual_fields'.
+
+    Returns
+    -------
+    dict
+        Dictionary of names -> functions giving the conversions for the
+        virtual fields specified in the ini file and default virtual fields
+        for plotting.
+    """
+
+    virtual_names = cp.options(section)
+    # Read virtual fields from config file
+    virtual_fields = dict([(key, cp.get_opt_tags(section, key)) 
+                          for key in virtual_fields])
+    # Add default plotting fields
+    virtual_fields['snr'] = 'snr_from_loglr(loglikelihood-lognl)'
+
+    return virtual_fields
